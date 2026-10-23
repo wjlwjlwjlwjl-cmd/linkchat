@@ -1,21 +1,19 @@
-# 容器用户与密码信息
-# MySQL，root，123456
-# RabbitMQ，wjl，wjl@123
-
 networks:
   dev-network:
     driver: bridge
+
 services:
-  # 含有各种开发框架的开发环境，例如 ODB
+  # C++ 开发环境
   dev-environment:
     image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/dev-environment:1.0
     container_name: dev-env-service
-    volumes: 
+    volumes:
       - /etc/localtime:/etc/localtime:ro
+      # 将程序源码目录，配置文件目录，日志目录，以及二进制目录映射出来
       - ./data/workspace:/home/dev/workspace
     ports:
       - "2222:22"
-      - "9000:9000" # 为各个微服务暴露的端口映射，可灵活修改
+      - "9000:9000"
       - "9001:9001"
       - "9002:9002"
       - "9003:9003"
@@ -26,9 +24,9 @@ services:
 
   # MySQL 容器
   dev-mysql:
-    image: mysql:8.0.40
+    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/mysql:8.0.40
     container_name: mysql-service
-    volumes: 
+    volumes:
       - ./mysql/my.cnf:/etc/my.cnf
       - ./mysql/sql.d/:/docker-entrypoint-initdb.d/
       - /etc/localtime:/etc/localtime:ro #与宿主机时钟同步，避免时间的问题
@@ -47,11 +45,11 @@ services:
     networks:
       - dev-network
 
-  # Redis 容器
+  # Redis 服务
   dev-redis:
-    image: redis:7.4.1
+    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/redis:7.4.1
     container_name: redis-service
-    volumes: 
+    volumes:
       - ./redis/redis.conf:/usr/local/etc/redis.conf
       - /etc/localtime:/etc/localtime:ro
     command: redis-server /usr/local/etc/redis.conf
@@ -68,12 +66,12 @@ services:
 
   # RabbitMQ 容器
   dev-rabbitmq:
-    image: rabbitmq:4.0
+    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/rabbitmq:4.0
     container_name: rabbitmq-service
     environment:
-      RABBITMQ_DEFAULT_USER: wjl
-      RABBITMQ_DEFAULT_PASS: wjl@123
-    volumes: 
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: 123456
+    volumes:
       - ./rabbitmq/20-management_agent.disable_metrics_collector.conf:/etc/rabbitmq/conf.d/20-management_agent.disable_metrics_collector.conf
     ports:
       - "5672:5672"
@@ -89,12 +87,12 @@ services:
 
   # ES 容器
   dev-elasticsearch:
-    image: elasticsearch:7.17.18
+    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/elasticsearch:7.17.18
     container_name: elasticsearch-service
     environment:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - "ELASTIC_PASSWORD=123456"
-    volumes: 
+    volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - ./elasticsearch/plugins:/usr/share/elasticsearch/plugins
@@ -110,14 +108,13 @@ services:
     networks:
       - dev-network
 
-  # Kibana 容器
   dev-kibana:
-    image: kibana:7.17.18
+    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/kibana:7.17.18
     container_name: kibana-service
     environment:
       - "I18N_LOCALE=zh-CN"
       - "ELASTICSEARCH_HOSTS=http://dev-elasticsearch:9200"
-    volumes: 
+    volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
     ports:
@@ -129,19 +126,16 @@ services:
     networks:
       - dev-network
 
-  # ETCD 容器
   dev-etcd:
-    image: etcd:3.5.12
+    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/etcd:3.5.12
     container_name: etcd-service
-    volumes: 
+    volumes:
       - /etc/localtime:/etc/localtime:ro
     environment:
       - ETCDCTL_API=3
       - ETCD_NAME=etcd-s1
       - ETCD_DATA_DIR=/var/lib/etcd
-      # 指定服务器端的监听地址-决定了是否可被外部访问
       - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
-      # 集群时对外通告的访问地址
       - ETCD_ADVERTISE_CLIENT_URLS=http://dev-etcd:2379
     ports:
       - "2379:2379"
