@@ -6,5 +6,5 @@ add_executable(
 )
 
 target_link_libraries(
-        main PRIVATE fmt spdlog
+        main PRIVATE fmt spdlog jsoncpp
 )

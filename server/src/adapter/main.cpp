@@ -1,9 +1,27 @@
-#include "logging/spdlog_logger.hpp"
+#include <iostream>
+#include <jsoncpp/json/json.h>
+
+#include "logging/logger.hpp"
+#include "json/json_codec.hpp"
 
 int main() {
     init_logger(false);
-    LOGGER_INFO("test logger info: {}", "hello world");
-    LOGGER_WARN("test logger warn: {}", "hello world");
-    LOGGER_ERROR("test logger error: {}", "hello world");
+
+    Json::Value obj;
+    obj["name"] = "John";
+    obj["age"] = 20;
+    obj["gender"] = "Male";
+    obj["skills"].append("C++");
+    obj["skills"].append("Java");
+    obj["skills"].append("Python");
+
+    Json::Value json;
+    std::string str = JsonCodec::serialize(json);
+    json = JsonCodec::deserialize(str);
+
+    std::cout << obj["name"] << std::endl;
+    std::cout << obj["age"] << std::endl;
+    std::cout << obj["gender"] << std::endl;
+    std::cout << obj["skills"] << std::endl;
     return 0;
 }
