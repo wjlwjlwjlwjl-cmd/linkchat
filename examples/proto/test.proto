@@ -1,0 +1,24 @@
+syntax = "proto3";
+package test;
+
+// 开启 Protobuf 为rpc service 生成代码
+option cc_generic_services = true;
+
+message Person{
+  string name = 1;
+  int32 age = 2;
+  repeated string skills = 3;
+  map<string, int32> scores = 4;
+}
+
+message req{
+  string req_message = 1;
+}
+
+message resp{
+  string resp_message = 1;
+}
+
+service test_service{
+  rpc SayHello (req) returns (resp){}
+}
