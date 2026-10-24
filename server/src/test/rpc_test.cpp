@@ -14,7 +14,7 @@ using namespace std::chrono_literals;
 CallbackFactory callback_factory;
 SvcChannels svc_channels;
 
-TEST(RPC封装测试, 添加节点并调用) {
+TEST(RPC封装测试, 添加节点并获取节点Channel与IP) {
     svc_channels.AddWatch("EchoService");
     svc_channels.AddNode("EchoService", "127.0.0.1:9000");
 
