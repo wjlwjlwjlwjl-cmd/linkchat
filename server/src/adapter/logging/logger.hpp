@@ -22,7 +22,7 @@ std::shared_ptr<spdlog::logger> logger;
  * @param level 输出级别（默认info）
  * @param log_file 日志文件
  */
-void init_logger(bool durable, const std::string& pattern = "%^%L%$ %v", spdlog::level::level_enum level = spdlog::level::info, const std::string& log_file = "") {
+void init_logger(bool durable = false, const std::string& pattern = "%^%L%$ %v", spdlog::level::level_enum level = spdlog::level::info, const std::string& log_file = "") {
     spdlog::init_thread_pool(std::thread::hardware_concurrency(), 1);
     if (!durable) {
         //落地方向为标准输出的日志器件

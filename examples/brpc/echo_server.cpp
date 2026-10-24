@@ -9,12 +9,10 @@ DEFINE_int32(server_port, 9000, "Port of server");
 
 class EchoService : public echo::EchoService {
 public:
-    EchoService(){}
-    ~EchoService(){}
-    virtual void Echo(google::protobuf::RpcController* controller,
+    void Echo(google::protobuf::RpcController* controller,
                          const ::echo::EchoRequest* request,
                          ::echo::EchoResponse* response,
-                         ::google::protobuf::Closure* done) {
+                         ::google::protobuf::Closure* done) override {
         brpc::ClosureGuard closure(done); // 需要手动调用 done->Run() 完成后续的序列化和推送，使用 CloseureGuard 通过 RAII 的方式保证完成调用
         std::cout << "echo::EchoRequest::Echo() ==>" << request->req_message() << std::endl;
         response->set_resp_message("this is a message returned by brpc server");

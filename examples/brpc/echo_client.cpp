@@ -1,4 +1,3 @@
-#include <echo.pb.h>
 #include <thread>
 #include <gflags/gflags.h>
 #include <brpc/channel.h>
@@ -9,7 +8,7 @@ DEFINE_string(server_ip, "127.0.0.1:9000", "server address and port");
 DEFINE_string(protocol, "baidu_std", "brpc protocol");
 DEFINE_int32(port, 9000, "server port");
 DEFINE_int32(connect_timeout_ms, 10000, "connect timeout");
-DEFINE_int32(timeout_ms, 1000, "timeout in seconds");
+DEFINE_int32(timeout_ms, 1000, "timeout in ms");
 DEFINE_int32(max_retry, 10, "max retry count");
 
 using namespace std::chrono_literals;
