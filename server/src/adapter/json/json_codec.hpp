@@ -23,7 +23,7 @@ public:
             writer->write(value, &ss);
         }
         catch (const std::exception& e) {
-            LOGGER_ERROR("Json serialization fail: {}", e.what());
+            ERR("Json serialization fail: {}", e.what());
             throw;
         }
         return ss.str();
@@ -43,7 +43,7 @@ public:
         std::string err;
         bool ret = reader->parse(&str[0], &str[str.size()], &obj, &err);
         if (!ret) {
-            LOGGER_ERROR("Json deserialize fail: {}", err);
+            ERR("Json deserialize fail: {}", err);
             throw;
         }
         return obj;

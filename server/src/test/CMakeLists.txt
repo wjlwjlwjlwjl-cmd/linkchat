@@ -23,16 +23,19 @@ add_custom_command(
         VERBATIM
 )
 
-add_executable(
-        rpc_test rpc_test.cpp ${PROTO_SRC}
-)
-target_include_directories(
-        rpc_test PRIVATE
-        ${Protobuf_INCLUDE_DIRS}
-        ${PROTO_GEN_DIR}
-)
-target_link_libraries(
-        rpc_test PRIVATE
-        brpc leveldb gflags ssl crypto gtest fmt spdlog
-        ${Protobuf_LIBRARIES}
-)
+set(TARGETS rpc_test etcd_registry_test etcd_discovery_test)
+
+foreach(TARGET ${TARGETS})
+        add_executable(
+                ${TARGET} ${TARGET}.cpp ${PROTO_SRC}
+        )
+        target_include_directories(
+                ${TARGET} PRIVATE
+                ${Protobuf_INCLUDE_DIRS}
+                ${PROTO_GEN_DIR}
+        )
+        target_link_libraries(
+                ${TARGET} PRIVATE
+                brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api ${Protobuf_LIBRARIES}
+        )
+endforeach()

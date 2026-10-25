@@ -6,14 +6,28 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/async.h>
 
+#include "../../util/string_util.hpp"
+
 std::shared_ptr<spdlog::logger> logger;
 
-#define LOGGER_TRACE(format, ...) logger->TRACE("[{}: {}] => " + std::string(format), __FILE__, __LINE__, ##__VA_ARGS__)
-#define LOGGER_DEBUG(format, ...) logger->debug("[{}: {}] => " + std::string(format), __FILE__, __LINE__, ##__VA_ARGS__)
-#define LOGGER_INFO(format, ...) logger->info("[{}: {}] => " + std::string(format), __FILE__, __LINE__, ##__VA_ARGS__)
-#define LOGGER_WARN(format, ...) logger->warn("[{}: {}] => " + std::string(format), __FILE__, __LINE__, ##__VA_ARGS__)
-#define LOGGER_ERROR(format, ...) logger->error("[{}: {}] => " + std::string(format), __FILE__, __LINE__, ##__VA_ARGS__)
-#define LOGGER_CRITICAL(format, ...) logger->critical("[{}: {}] => " + std::string(format), __FILE__, __LINE__, ##__VA_ARGS__)
+const char* get_current_filename() {
+    // 从整个路径中，从后往前找最后一个 '/' 或 '\'
+    const char* file = __FILE__;
+    const char* p1 = strrchr(file, '/');
+    const char* p2 = strrchr(file, '\\');
+    const char* p = p1 > p2 ? p1 : p2; // 取位置更靠后的那个（兼容不同系统）
+    
+    return p ? p + 1 : file;
+}
+
+std::string cur_f(get_current_filename());
+
+#define TRC(format, ...) logger->trace("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
+#define DBG(format, ...) logger->debug("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
+#define INF(format, ...) logger->info("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
+#define WRN(format, ...) logger->warn("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
+#define ERR(format, ...) logger->error("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
+#define CRT(format, ...) logger->critical("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
 
 /**
  *

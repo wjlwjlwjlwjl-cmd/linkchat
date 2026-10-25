@@ -26,10 +26,10 @@ TEST(RPC封装测试, 添加节点并获取节点Channel与IP) {
 
     auto closure = callback_factory.CreateCallback([&]() {
         if (controller->Failed()) {
-            LOGGER_ERROR("rpc fail: {}", controller->ErrorText());
+            ERR("rpc fail: {}", controller->ErrorText());
         }
         else {
-            LOGGER_INFO("rpc success: {}", response->resp_message());
+            INF("rpc success: {}", response->resp_message());
         }
     });
 
@@ -37,7 +37,7 @@ TEST(RPC封装测试, 添加节点并获取节点Channel与IP) {
     echo_service_stub.Echo(controller.get(), request.get(), response.get(), closure);
 
     auto opt_ip = svc_channels.GetAddr("EchoService");
-    LOGGER_INFO("opt_ip: {}", opt_ip.has_value() ? opt_ip.value() : "none");
+    INF("opt_ip: {}", opt_ip.has_value() ? opt_ip.value() : "none");
     std::this_thread::sleep_for(5s);
 }
 

@@ -44,7 +44,7 @@ void Channels::Insert(const std::string& addr) {
 
     ChannelPtr channel = std::make_shared<brpc::Channel>();
     if (channel->Init(addr.c_str(), &channel_options) != 0) {
-        LOGGER_ERROR("Failed to initialize channel to {}", addr);
+        ERR("Failed to initialize channel to {}", addr);
         return;
     }
     _channels.push_back(std::make_pair(addr, channel));

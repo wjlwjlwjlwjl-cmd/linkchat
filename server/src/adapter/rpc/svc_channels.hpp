@@ -35,21 +35,21 @@ void SvcChannels::AddWatch(const std::string& svc_name) {
 void SvcChannels::AddNode(const std::string& svc_name, const std::string& addr) {
     std::unique_lock lock(_mtx);
     if (!_svc_channels.count(svc_name)) {
-        LOGGER_ERROR("【增添】未找到 {} 服务管理对象（Channels）", svc_name);
+        ERR("【增添】未找到 {} 服务管理对象（Channels）", svc_name);
         return;
     }
     _svc_channels[svc_name]->Insert(addr);
-    LOGGER_INFO("{} 服务 {} 节点添加成功", svc_name, addr);
+    INF("{} 服务 {} 节点添加成功", svc_name, addr);
 }
 
 void SvcChannels::DelNode(const std::string& svc_name, const std::string& addr) {
     std::unique_lock lock(_mtx);
     if (!_svc_channels.count(svc_name)) {
-        LOGGER_ERROR("【删除】未找到 {} 服务管理对象（Channels）", svc_name);
+        ERR("【删除】未找到 {} 服务管理对象（Channels）", svc_name);
         return;
     }
     _svc_channels[svc_name]->Remove(addr);
-    LOGGER_INFO("{} 服务 {} 节点删除成功", svc_name, addr);
+    INF("{} 服务 {} 节点删除成功", svc_name, addr);
 }
 
 ChannelPtr SvcChannels::GetChannel(const std::string& svc_name) {
