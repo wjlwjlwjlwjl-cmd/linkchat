@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(linkchat_brpc)
 
+
 find_package(Protobuf REQUIRED)
 
 message(STATUS "Protobuf libraries: ${Protobuf_LIBRARIES}")
@@ -23,11 +24,14 @@ add_custom_command(
         VERBATIM
 )
 
-set(TARGETS rpc_test etcd_registry_test etcd_discovery_test)
+set(TARGETS rpc_test etcd_registry_test etcd_discovery_test mq_test)
 
 foreach(TARGET ${TARGETS})
         add_executable(
                 ${TARGET} ${TARGET}.cpp ${PROTO_SRC}
+        )
+        target_compile_features(
+                ${TARGET} PRIVATE cxx_std_20
         )
         target_include_directories(
                 ${TARGET} PRIVATE
@@ -36,6 +40,8 @@ foreach(TARGET ${TARGETS})
         )
         target_link_libraries(
                 ${TARGET} PRIVATE
-                brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api ${Protobuf_LIBRARIES}
+                brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api 
+                amqpcpp ev pthread
+                ${Protobuf_LIBRARIES}
         )
 endforeach()

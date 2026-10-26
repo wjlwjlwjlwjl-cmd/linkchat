@@ -22,12 +22,12 @@ const char* get_current_filename() {
 
 std::string cur_f(get_current_filename());
 
-#define TRC(format, ...) logger->trace("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
-#define DBG(format, ...) logger->debug("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
-#define INF(format, ...) logger->info("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
-#define WRN(format, ...) logger->warn("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
-#define ERR(format, ...) logger->error("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
-#define CRT(format, ...) logger->critical("[{}: {}] => " + std::string(format), cur_f, __LINE__, ##__VA_ARGS__)
+#define TRC(format, ...) logger->trace("[{}: {}] => " format, cur_f, __LINE__, ##__VA_ARGS__)
+#define DBG(format, ...) logger->debug("[{}: {}] => " format, cur_f, __LINE__, ##__VA_ARGS__)
+#define INF(format, ...) logger->info("[{}: {}] => " format, cur_f, __LINE__, ##__VA_ARGS__)
+#define WRN(format, ...) logger->warn("[{}: {}] => " format, cur_f, __LINE__, ##__VA_ARGS__)
+#define ERR(format, ...) logger->error("[{}: {}] => " format, cur_f, __LINE__, ##__VA_ARGS__)
+#define CRT(format, ...) logger->critical("[{}: {}] => " format, cur_f, __LINE__, ##__VA_ARGS__)
 
 /**
  *
