@@ -16,6 +16,12 @@ int main(){
     channel.declareExchange(exchange_name, AMQP::ExchangeType::direct)
     .onSuccess([&](){
         std::cout << "交换机" << exchange_name << "定义成功" << std::endl;
+
+        // 如果需要绑定死信队列：
+        // AMQP::table args
+        // x-dead-letter-exchange，DLX，死信交换机
+        // x-dead-letter-queue，DLQ，死信队列
+        // x-message-ttl，过期时间
         channel.declareQueue(queue_name)
         .onSuccess([&](const std::string &name, uint32_t messagecount, uint32_t consumercount){
             std::cout << "队列" << queue_name << "定义成功" << std::endl;
