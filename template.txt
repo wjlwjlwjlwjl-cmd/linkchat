@@ -85,7 +85,7 @@ Google C++ 命名风格
 
 函数：GetUserName(), SetAge() （动词短语，大驼峰）
 
-局部变量：user_name （全小写 + 下划线）
+局部变量、命名空间：user_name （全小写 + 下划线）
 
 成员变量：user_name_ （全小写 + 下划线 + 结尾后缀）
 
