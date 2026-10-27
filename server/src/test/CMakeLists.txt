@@ -40,7 +40,7 @@ foreach(TARGET ${TARGETS})
         target_link_libraries(
                 ${TARGET} PRIVATE
                 brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api 
-                amqpcpp ev pthread
+                amqpcpp ev pthread hiredis redis++
                 ${Protobuf_LIBRARIES}
         )
 endforeach()

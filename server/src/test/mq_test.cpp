@@ -3,6 +3,7 @@
 #include "../adapter/amqp/mq_client.hpp"
 #include "../adapter/amqp/publisher.hpp"
 #include "../adapter/amqp/consumer.hpp"
+#include "../adapter/redis/redis_factory.hpp"
 #include "../constants/amqp_constants.hpp"
 
 using namespace std::chrono_literals;
