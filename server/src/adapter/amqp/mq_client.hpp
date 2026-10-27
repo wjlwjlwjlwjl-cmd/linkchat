@@ -52,6 +52,8 @@ std::string DeclareSettings::get_dl_binding_key(){
 /// @brief AMQP Broker 操作封装
 class MQClient{
 public:
+    //libev 网络库底层并不是线程安全的，因此对于 _channel 的任何操作，都需要加锁处理，否则会导致行为混乱
+    //同时，队列、交换机、路由关系的回调也都是异步的，所以要等待全部完成后，外层函数再返回。这里采取值捕获和条件变量的方式
     using MessageCallback = std::function<void(const char* message, int message_size)>;
 
     /// @brief 初始化网络协议等
@@ -81,7 +83,7 @@ private:
 
     static void Callback(struct ev_loop *loop, ev_async *watcher, int revents);
 
-    std::mutex _declare_mtx; //用于互斥
+    std::mutex _declare_mtx; //用于互斥（libev 底层非线程安全）
     std::mutex _mtx; //用于条件控制
     std::condition_variable _cv;
     struct ev_loop* _ev_loop; //网络事件循环
@@ -89,7 +91,7 @@ private:
     AMQP::LibEvHandler _handler;
     AMQP::TcpConnection _connection;
     AMQP::TcpChannel _channel;
-    std::thread _async_thread;
+    std::thread _async_thread; //启动一个异步线程完成网络事件循环
 };
 
 MQClient::MQClient(const std::string& broker_url)
@@ -101,7 +103,9 @@ MQClient::MQClient(const std::string& broker_url)
 {}
 
 MQClient::~MQClient(){
-    //在析构中，要结束网络事件循环，需要异步进行；并且完成线程的join
+    //在析构中，要结束网络事件循环，需要异步进行，否则在网络事件循环中等待的线程可能会出现未定义行为，
+    //这样可以安全的通知等待的线程网络事件循环结束并执行相应回调；
+    //并且完成线程的join
 
     ev_async_init(&_ev_async, MQClient::Callback); //初始化异步通知机制
     ev_async_start(_ev_loop, &_ev_async); //启动异步通知机制
@@ -121,15 +125,11 @@ void MQClient::_Declare(DeclareSettings& settings, AMQP::Table& tb){
     //C++17，= 会捕获 this，但是 C++20 后不会，因此这里按需捕获
     _channel.declareExchange(settings._exchange, EXCHANGE_TYPE::getExchangeType(settings._exchange_type))
     .onSuccess([=, this](){
-        INF("Exchange {} declared successfully", settings._exchange);
-
         _channel.declareQueue(settings._queue, tb)
         .onSuccess([=, this](const std::string& name, uint32_t messagecount, uint32_t consumercount){
-            INF("Queue {} declared successfully", settings._queue);
-
             _channel.bindQueue(settings._exchange, settings._queue, settings._binding_key)
             .onSuccess([=, this](){
-                INF("Binding {} <=> {} successfully, key: {}", settings._exchange, settings._queue, settings._binding_key);
+                INF("Exchange: {}, Queue: {}, Binding Key: {}, init successfully", settings._exchange, settings._queue, settings._binding_key);
                 _cv.notify_all();
             })
             .onError([=, this](const char* message){
@@ -187,11 +187,11 @@ void MQClient::Consume(const std::string& queue, MessageCallback& cb){
         _channel.ack(deliveryTag);
     })
     .onError([=](const char* message){
-        ERR("接受消息失败: {}", message);
+        ERR("Failed to consume from {}: {}", queue, message);
         abort();
     })
     .onSuccess([=, this](){
-        INF("消息接受成功");
+        INF("Started consuming from {}", queue);
         _cv.notify_all();
     });
 
