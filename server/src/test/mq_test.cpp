@@ -1,53 +1,36 @@
 #include <chrono>
 
 #include "../adapter/amqp/mq_client.hpp"
+#include "../adapter/amqp/publisher.hpp"
+#include "../adapter/amqp/consumer.hpp"
 #include "../constants/amqp_constants.hpp"
 
 using namespace std::chrono_literals;
 
-MQClient mq_client("amqp://admin:123456@rabbitmq-service:5672");
-
-void MQ_DECLARE_NO_TTL_TEST(){
-    DeclareSettings settings("test_exchange", EXCHANGE_TYPE::DIRECT, "test_queue", "test_binding_key");
-    mq_client.Declare(settings);
-    
-    DeclareSettings settings1("test_exchange1", EXCHANGE_TYPE::FANOUT, "test_queue1", "test_binding_key1");
-    mq_client.Declare(settings1);
-
-    DeclareSettings settings2("test_exchange2", EXCHANGE_TYPE::TOPIC, "test_queue2", "test_binding_key2");
-    mq_client.Declare(settings2);
-}
-
-void MQ_DECLARE_TTL_TEST(){
-    DeclareSettings settings("test_exchange3", EXCHANGE_TYPE::DIRECT, "test_queue3", "test_binding_key3", 9);
-    mq_client.Declare(settings);
-    
-    DeclareSettings settings1("test_exchange4", EXCHANGE_TYPE::FANOUT, "test_queue4", "test_binding_key4", 9);
-    mq_client.Declare(settings1);
-
-    DeclareSettings settings2("test_exchange5", EXCHANGE_TYPE::TOPIC, "test_queue5", "test_binding_key5", 9);
-    mq_client.Declare(settings2);
-}
+auto mq_client = std::make_shared<MQClient>("amqp://admin:123456@rabbitmq-service:5672");
 
 void PUBLISH_TEST(){
-    mq_client.Publish("test_exchange3", "test_binding_key3", "this is a test msg first");
-    std::this_thread::sleep_for(1s);
-    mq_client.Publish("test_exchange3", "test_binding_key3", "this is a test msg second");
-    std::this_thread::sleep_for(1s);
-    mq_client.Publish("test_exchange3", "test_binding_key3", "this is a test msg third");
+    DeclareSettings settings("test_exchange3", EXCHANGE_TYPE::DIRECT, "test_queue3", "test_binding_key3", 9);
+    Publisher publisher(mq_client, settings);
+    publisher.Publish("this is a message test publishing");
 }
 
 void CONSUME_TEST(){
-    auto cb = [](const char* msg, int msgSize){
-        std::cout << "Consumer get message: " << std::string(msg, msgSize) << std::endl;
-    };
-    mq_client.Consume("test_queue3", cb);
+    //延时队列
+    DeclareSettings settings("test_exchange3", EXCHANGE_TYPE::DIRECT, "test_queue3", "test_binding_key3", 9);
+    Consumer consumer(mq_client, settings);
+    consumer.Consume([](const char* msg, int size){
+        std::cout << std::string(msg, size) << std::endl;
+    });
+    getchar();
 }
 
 int main(){
     init_logger();
     std::thread con_thread([=](){CONSUME_TEST();});
-    getchar();
+    std::this_thread::sleep_for(2s);
+    std::thread pub_thread([=](){PUBLISH_TEST();});
     con_thread.join();
+    pub_thread.join();
     return 0;
 }
