@@ -17,10 +17,9 @@ add_custom_command(
         OUTPUT ${PROTO_SRC} ${PROTO_HDR}
         COMMAND ${Protobuf_PROTOC_EXECUTABLE}
         ARGS --cpp_out=${PROTO_GEN_DIR}
-        -I ${CMAKE_SOURCE_DIR}
-        ${PROTO_FILE}
+                -I ${CMAKE_SOURCE_DIR}
+                ${PROTO_FILE}
         DEPENDS ${PROTO_FILE}
-        COMMENT "Generating protobuf sources for echo.proto"
         VERBATIM
 )
 
