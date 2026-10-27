@@ -68,12 +68,12 @@ public:
     /// @param 交换机
     /// @param 路由建
     /// @param 消息
-    void Publish(const std::string&, const std::string&, const char*);
+    bool Publish(const std::string&, const std::string&, const char*);
 
     /// @brief 消费消息
     /// @param 队列 
     /// @param 消息回调 
-    void Consume(const std::string&, MessageCallback&&);
+    void Consume(const std::string&, MessageCallback&);
 private:
     /// @brief 单纯负责声明交换机、队列、路由键等
     /// @param  信息
@@ -172,19 +172,18 @@ void MQClient::Declare(DeclareSettings settings){
     _Declare(settings, tb);
 }
 
-void MQClient::Publish(const std::string& exchange, const std::string& routing_key, const char* msg){
+bool MQClient::Publish(const std::string& exchange, const std::string& routing_key, const char* msg){
     std::unique_lock<std::mutex> declare_lock(_declare_mtx);
-    _channel.publish(exchange, routing_key, msg);
+    return _channel.publish(exchange, routing_key, msg);
 }
 
-void MQClient::Consume(const std::string& queue, MessageCallback&& cb){
+void MQClient::Consume(const std::string& queue, MessageCallback& cb){
     std::unique_lock<std::mutex> declare_lock(_declare_mtx);
     std::unique_lock<std::mutex> lock(_mtx);
 
-    auto cb1 = std::move(cb);
     _channel.consume(queue)
     .onMessage([=, this](const AMQP::Message &message, uint64_t deliveryTag, bool redelivered){
-        cb1(message.body(), message.bodySize());
+        cb(message.body(), message.bodySize());
         _channel.ack(deliveryTag);
     })
     .onError([=](const char* message){
