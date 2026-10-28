@@ -53,7 +53,7 @@ endforeach()
 add_custom_target(odb_generate DEPENDS ${ODB_GENERATE_SOURCES})
 
 # Code Building
-set(TARGETS rpc_test etcd_registry_test etcd_discovery_test mq_test elastic_test)
+set(TARGETS rpc_test etcd_registry_test etcd_discovery_test mq_test elastic_test email_test)
 set(FRAMEWORK_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 foreach(TARGET ${TARGETS})
         add_executable(
@@ -77,7 +77,7 @@ foreach(TARGET ${TARGETS})
                 ${TARGET} PRIVATE
                 brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api 
                 amqpcpp ev pthread hiredis redis++ odb odb-boost odb-mysql jsoncpp
-                cpr elasticlient
+                cpr elasticlient curl
                 ${Protobuf_LIBRARIES}
         )
 endforeach()
