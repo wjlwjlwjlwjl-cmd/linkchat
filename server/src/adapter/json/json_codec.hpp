@@ -1,7 +1,7 @@
 #pragma once
 
 #include <jsoncpp/json/json.h>
-#include "logging/logger.hpp"
+#include "adapter/logging/logger.hpp"
 
 class JsonCodec {
 public:

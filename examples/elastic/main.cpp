@@ -14,6 +14,7 @@ void create_index(elasticlient::Client& client){
                 "analysis":{
                     "analyzer": {
                         "ik_max": {
+                            "type": "custom",
                             "tokenizer": "ik_max_word"
                         }
                     }
