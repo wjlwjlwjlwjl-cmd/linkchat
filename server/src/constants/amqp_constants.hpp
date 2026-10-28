@@ -4,7 +4,7 @@
 #include <string>
 #include <amqpcpp.h>
 
-#include "../adapter/logging/logger.hpp"
+#include "adapter/logging/logger.hpp"
 
 //交换机类型
 namespace EXCHANGE_TYPE {

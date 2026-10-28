@@ -5,8 +5,8 @@
 #include <brpc/channel.h>
 #include <optional>
 
-#include "../../constants/rpc_constants.hpp"
-#include "../logging/logger.hpp"
+#include "constants/rpc_constants.hpp"
+#include "adapter/logging/logger.hpp"
 
 using ChannelPtr = std::shared_ptr<brpc::Channel>;
 

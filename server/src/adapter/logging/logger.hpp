@@ -6,7 +6,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/async.h>
 
-#include "../../util/string_util.hpp"
+#include "util/string_util.hpp"
 
 std::shared_ptr<spdlog::logger> logger;
 

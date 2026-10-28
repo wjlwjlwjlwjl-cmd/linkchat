@@ -54,6 +54,7 @@ add_custom_target(odb_generate DEPENDS ${ODB_GENERATE_SOURCES})
 
 # Code Building
 set(TARGETS rpc_test etcd_registry_test etcd_discovery_test mq_test)
+set(FRAMEWORK_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 foreach(TARGET ${TARGETS})
         add_executable(
                 ${TARGET} ${TARGET}.cpp ${PROTO_SRC} ${ODB_GENERATE_SOURCES}
@@ -70,11 +71,13 @@ foreach(TARGET ${TARGETS})
                 ${PROTO_GEN_DIR}
                 ${ODB_GENERATE_DIR}
                 ${CMAKE_CURRENT_SOURCE_DIR}
+                ${FRAMEWORK_SOURCE_DIR}
         )
         target_link_libraries(
                 ${TARGET} PRIVATE
                 brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api 
-                amqpcpp ev pthread hiredis redis++ odb odb-boost odb-mysql
+                amqpcpp ev pthread hiredis redis++ odb odb-boost odb-mysql jsoncpp
+                cpr elasticlient
                 ${Protobuf_LIBRARIES}
         )
 endforeach()

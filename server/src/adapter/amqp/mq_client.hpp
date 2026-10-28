@@ -7,7 +7,7 @@
 #include <amqpcpp.h>
 #include <amqpcpp/libev.h>
 
-#include "../../constants/amqp_constants.hpp"
+#include "constants/amqp_constants.hpp"
 
 /// @brief AMQP 参数
 struct DeclareSettings{

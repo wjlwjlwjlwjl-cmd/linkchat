@@ -4,7 +4,7 @@
 #pragma once
 
 #include "channels.hpp"
-#include "../logging/logger.hpp"
+#include "adapter/logging/logger.hpp"
 
 class SvcChannels {
 public:

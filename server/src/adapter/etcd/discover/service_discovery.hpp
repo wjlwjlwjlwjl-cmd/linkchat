@@ -6,8 +6,8 @@
 #include <etcd/Client.hpp>
 #include <etcd/Watcher.hpp>
 
-#include "../../logging/logger.hpp"
-#include "../../../util/string_util.hpp"
+#include "adapter/logging/logger.hpp"
+#include "util/string_util.hpp"
 
 class SvcDiscovery{
 public:
