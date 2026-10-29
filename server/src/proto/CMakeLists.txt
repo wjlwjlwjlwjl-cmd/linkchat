@@ -8,6 +8,7 @@ protobuf_generate_cpp(BASE_PROTO_SRC BASE_PROTO_HDR base.proto)
 add_library(base_proto STATIC ${BASE_PROTO_SRC} ${BASE_PROTO_HDR})
 target_include_directories(base_proto PUBLIC 
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(base_proto PUBLIC protobuf)
 
@@ -16,6 +17,7 @@ protobuf_generate_cpp(FILE_PROTO_SRC FILE_PROTO_HDR file.proto)
 add_library(file_proto STATIC ${FILE_PROTO_SRC} ${FILE_PROTO_HDR})
 target_include_directories(file_proto PUBLIC 
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(file_proto PUBLIC 
     protobuf 

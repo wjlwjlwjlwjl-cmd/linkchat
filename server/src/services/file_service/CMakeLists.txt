@@ -1,21 +1,11 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(linkchat_file)
 
-find_package(Protobuf REQUIRED)
+file(GLOB_RECURSE SRCS "*.cpp")
 
-message(STATUS "Protobuf libraries: ${Protobuf_LIBRARIES}")
-message(STATUS "Protobuf include: ${Protobuf_INCLUDE_DIRS}")
-message(STATUS "Protobuf executable: ${Protobuf_PROTOC_EXECUTABLE}")
-
-set(proto_file ${CMAKE_SOURCE_DIR}/file.proto)
-set(proto_gen_dir ${CMAKE_CURRENT_BINARY_DIR})
-set(proto_src ${proto_gen_dir}/echo.pb.cc)
-set(proto_hdr ${proto_gen_dir}/echo.pb.h)
-
-add_executable(
-    main main.cpp
-)
+add_executable(file_service_bin ${SRCS})
 
 target_link_libraries(
-    main PRIVATE gflags spdlog protobuf
+    file_service_bin  PRIVATE
+    file_proto gflags
 )
