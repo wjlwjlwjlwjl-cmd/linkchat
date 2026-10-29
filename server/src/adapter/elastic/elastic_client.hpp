@@ -116,6 +116,9 @@ public:
     }
 
     void Remove(const std::string& id){
+        if(id.empty()){
+            return;
+        }
         auto resp = _client->remove(_index_name, _doc_type, id);
         if(resp.status_code < 200 || resp.status_code >= 300){
             ERR("es delete fail: {}", resp.text);

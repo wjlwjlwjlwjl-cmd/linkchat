@@ -1,0 +1,35 @@
+FROM crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/dev-environment:1.0
+
+WORKDIR /root
+
+RUN apt update
+
+# 基础工具安装
+RUN apt install -y mysql-client curl git \
+    build-essential cmake libcurl4-openssl-dev libssl-dev zlib1g-dev unzip
+
+# 提示符美化（自带不方便）
+RUN bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)"
+
+# Aliyun OSS C++ 安装
+WORKDIR /root
+RUN git clone https://gitee.com/mirrors_aliyun/aliyun-oss-cpp-sdk.git && \
+    cd aliyun-oss-cpp-sdk && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make -j$(nproc) && \
+    make install && \
+    cd /root && \
+    rm -rf aliyun-oss-cpp-sdk
+
+# 修改 MySQL 宏定义
+RUN sed -i '1i\
+enum net_async_status \
+{ \
+  NET_ASYNC_COMPLETE= 0, \
+  NET_ASYNC_NOT_READY, \
+  NET_ASYNC_ERROR, \
+  NET_ASYNC_COMPLETE_NO_MORE_RESULTS, \
+  NET_ASYNC_FLUSH_ERROR \
+}; \
+' /usr/include/mysql/mysql.h

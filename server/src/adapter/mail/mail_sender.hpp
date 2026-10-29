@@ -37,7 +37,6 @@ namespace mail {
         std::string body;
     };
 
-    // ---------- 纯文本邮件的报文构造（RFC 5322 + RFC 2045/2047） ----------
     inline std::string build_payload(const MailMessage& mail) {
         const std::string from    = mail.from;
         const std::string to      = mail.to;
@@ -102,7 +101,7 @@ namespace mail {
         curl_easy_setopt(curl.get(), CURLOPT_READDATA,      &ctx);
         curl_easy_setopt(curl.get(), CURLOPT_UPLOAD,        1L);
 
-        //发起会话，同步阻塞，反复调用 read_cb
+        //发起会话，自动进行DNS 解析、TCP 连接，同步阻塞，反复调用 read_cb
         const CURLcode res = curl_easy_perform(curl.get());
         if (res != CURLE_OK) {
             ERR("send failed: {}", curl_easy_strerror(res)); //将libcurl错误码转换为刻度的错误信息

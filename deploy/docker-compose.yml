@@ -5,8 +5,8 @@ networks:
 services:
   # C++ 开发环境
   dev-environment:
-    image: crpi-50dgs1uofzodc9pn.cn-chengdu.personal.cr.aliyuncs.com/dev-envronment/dev-environment:1.0
-    container_name: dev-env-service
+    image: crpi-e1b7c99u8s87pkpu.cn-shanghai.personal.cr.aliyuncs.com/cpp_diinkikot/cpp-scaffold:v2.0
+    container_name: cpp-scaffold
     volumes:
       - /etc/localtime:/etc/localtime:ro
       # 将程序源码目录，配置文件目录，日志目录，以及二进制目录映射出来
