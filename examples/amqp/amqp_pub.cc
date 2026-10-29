@@ -1,7 +1,7 @@
 #include <amqpcpp.h>
 #include <amqpcpp/libev.h>
 
-int main(){
+int main() {
     const std::string broker_url = "amqp://admin:123456@rabbitmq-service:5672/"; // docker 网络自动解析ip
     const std::string exchange_name = "test_exchange";
     const std::string queue_name = "test_queue";
@@ -14,7 +14,7 @@ int main(){
     AMQP::TcpChannel channel(&connection);
 
     channel.declareExchange(exchange_name, AMQP::ExchangeType::direct)
-    .onSuccess([&](){
+    .onSuccess([&]() {
         std::cout << "交换机" << exchange_name << "定义成功" << std::endl;
 
         // 如果需要绑定死信队列：
@@ -23,32 +23,32 @@ int main(){
         // x-dead-letter-queue，DLQ，死信队列
         // x-message-ttl，过期时间
         channel.declareQueue(queue_name)
-        .onSuccess([&](const std::string &name, uint32_t messagecount, uint32_t consumercount){
+        .onSuccess([&](const std::string& name, uint32_t message_count, uint32_t consumer_count) {
             std::cout << "队列" << queue_name << "定义成功" << std::endl;
-            std::cout << "messagecount: " << messagecount << ", " << "consumercount: " << consumercount << std::endl; 
+            std::cout << "messagecount: " << message_count << ", " << "consumercount: " << consumer_count << std::endl;
 
             channel.bindQueue(exchange_name, queue_name, routing_key)
-            .onSuccess([&](){
+            .onSuccess([&]() {
                 std::cout << "绑定" << queue_name << "到" << exchange_name << "成功, routing_key: " << routing_key << std::endl;
                 bool ret = channel.publish(exchange_name, routing_key, "this is a message send to brocker from publisher");
-                if(!ret){
+                if (!ret) {
                     std::cout << "消息发布失败" << std::endl;
                 }
-                else{
+                else {
                     std::cout << "消息发布成功" << std::endl;
                 }
             })
-            .onError([&](const char* message){
+            .onError([&](const char* message) {
                 std::cout << "队列绑定失败: " << message << std::endl;
                 abort();
             });
         })
-        .onError([&](const char* message){
+        .onError([&](const char* message) {
             std::cout << "队列声明失败: " << message << std::endl;
             abort();
         });
     })
-    .onError([&](const char* message){
+    .onError([&](const char* message) {
         std::cout << "交换机声明失败: " << message << std::endl;
         abort();
     });

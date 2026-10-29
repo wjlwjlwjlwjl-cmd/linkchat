@@ -1,14 +1,14 @@
 #include <httplib.h>
 
-void helloWorld(const httplib::Request& request, httplib::Response& response) {
+void HelloWorld(const httplib::Request& request, httplib::Response& response) {
     std::cout << request.path << std::endl;
     std::cout << request.method << std::endl;
     std::cout << request.body << std::endl;
-    for (auto it: request.headers) {
-        std::cout << it.first << "-" << it.second << std::endl;
+    for (auto header : request.headers) {
+        std::cout << header.first << "-" << header.second << std::endl;
     }
-    for (auto it: request.params) {
-        std::cout << it.first << "-" << it.second << std::endl;
+    for (auto param : request.params) {
+        std::cout << param.first << "-" << param.second << std::endl;
     }
     response.set_content("this is a response returned from httplib server", "text/plain");
     response.status = 200;
@@ -16,13 +16,13 @@ void helloWorld(const httplib::Request& request, httplib::Response& response) {
 
 int main() {
     httplib::Server server;
-    server.Get("/hello_world", helloWorld);
+    server.Get("/hello_world", HelloWorld);
     server.Get(R"(/test_path_variable/(\d+))", [&](const httplib::Request& request, httplib::Response& response) {
         std::cout << request.path << std::endl;
         std::cout << request.method << std::endl;
         std::cout << request.body << std::endl;
-        for (auto it: request.matches) {
-            std::cout << it << std::endl;
+        for (auto match : request.matches) {
+            std::cout << match << std::endl;
         }
     });
     server.set_mount_point("/", "../webroot");

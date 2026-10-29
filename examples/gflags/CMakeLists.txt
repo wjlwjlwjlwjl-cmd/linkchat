@@ -1,10 +1,10 @@
-project(linkchat_spdlog)
-CMAKE_MINIMUM_REQUIRED(VERSION 3.22.1)
+project(linkchat_gflags)
+cmake_minimum_required(VERSION 3.22.1)
 add_executable(
-        main main.cpp
+    main main.cc
 )
 find_package(
-        gflags REQUIRED
+    gflags REQUIRED
 )
 target_link_libraries(
     main PRIVATE gflags

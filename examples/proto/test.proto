@@ -4,21 +4,21 @@ package test;
 // 开启 Protobuf 为rpc service 生成代码
 option cc_generic_services = true;
 
-message Person{
+message Person {
   string name = 1;
   int32 age = 2;
   repeated string skills = 3;
   map<string, int32> scores = 4;
 }
 
-message req{
+message Request {
   string req_message = 1;
 }
 
-message resp{
+message Response {
   string resp_message = 1;
 }
 
-service test_service{
-  rpc SayHello (req) returns (resp){}
+service TestService {
+  rpc SayHello (Request) returns (Response) {}
 }

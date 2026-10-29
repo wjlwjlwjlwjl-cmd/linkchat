@@ -1,9 +1,9 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.22.1)
 project(linkchat_etcd)
 
-set (ALL_TARGETS put get)
+set(all_targets put get)
 
-foreach(target ${ALL_TARGETS})
+foreach(target ${all_targets})
     add_executable(
         ${target} ${target}.cc
     )

@@ -5,12 +5,12 @@ project(linkchat_odb)
 find_program(ODB_COMPILER odb REQUIRED)
 
 # 指定持久化头文件
-set(PERSISTENT_HEADERS person.hxx)
+set(persistent_headers person.h)
 
 # 列表，用来存放后续生成的源文件（*.cxx）
-set (GENERATED_SOURCES "")
+set(generated_sources "")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated)
-foreach(header ${PERSISTENT_HEADERS})
+foreach(header ${persistent_headers})
     get_filename_component(base ${header} NAME_WE) # 获取部分文件名，此处为获取不带扩展名的文件名
 
     set(gen_cxx ${CMAKE_CURRENT_BINARY_DIR}/generated/${base}-odb.cxx)
@@ -29,11 +29,11 @@ foreach(header ${PERSISTENT_HEADERS})
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${header}
     )
 
-    list(APPEND GENERATED_SOURCES ${gen_cxx})
+    list(APPEND generated_sources ${gen_cxx})
 endforeach()
 
 add_executable(
-    main main.cpp ${GENERATED_SOURCES}
+    main main.cc ${generated_sources}
 )
 
 target_include_directories(
