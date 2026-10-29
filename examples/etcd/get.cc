@@ -4,17 +4,17 @@
 
 void WatcherCallback(::etcd::Response const& response) {
     if (response.error_code() != 0) {
-        std::cout << "监听出错：" << response.error_message() << std::endl;
+        std::cout << "Watch failed: " << response.error_message() << std::endl;
     }
 
     for (auto& event : response.events()) {
         if (event.event_type() == ::etcd::Event::EventType::PUT) {
             //新增键值对
-            std::cout << "新增键值对：" << event.kv().key() << " - " << event.kv().as_string() << std::endl;
+            std::cout << "Key added: " << event.kv().key() << " - " << event.kv().as_string() << std::endl;
         }
         else if (event.event_type() == ::etcd::Event::EventType::DELETE_) {
             //键值对被删除
-            std::cout << "删除键值对" << event.kv().key() << " - " << event.prev_kv().as_string() << std::endl;
+            std::cout << "Key deleted: " << event.kv().key() << " - " << event.prev_kv().as_string() << std::endl;
         }
     }
 }
@@ -31,7 +31,7 @@ void Watch(const std::string& host_ip,
     }
     else {
         //获取键值对失败
-        std::cout << "获取键值对失败" << std::endl;
+        std::cout << "Failed to get key value pairs" << std::endl;
     }
 
     auto callback = std::bind(WatcherCallback, std::placeholders::_1);
@@ -42,7 +42,7 @@ void Watch(const std::string& host_ip,
 
     watcher->Wait([&](bool canceled) {
         if (canceled) {
-            std::cout << "Etcd 主动断开监听" << std::endl;
+            std::cout << "Watch canceled by etcd" << std::endl;
             return;
         }
         Watch(host_ip, key, watcher);

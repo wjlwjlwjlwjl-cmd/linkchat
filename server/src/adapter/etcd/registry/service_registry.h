@@ -65,20 +65,20 @@ inline bool SvcRegistry::Registry() {
     ::etcd::Client client(etcd_server_ip_);
     bool ret = WaitForConnection(client);
     if (!ret) {
-        LOG_ERROR("连接 Etcd 服务器失败");
+        LOG_ERROR("Failed to connect to etcd server");
         return false;
     }
 
     auto lease = client.leasegrant(etcd_constants::kTtl).get();
     if (!lease.is_ok()) {
-        LOG_ERROR("获取租约失败 {}", lease.error_message());
+        LOG_ERROR("Failed to grant lease: {}", lease.error_message());
         return false;
     }
     int64_t lease_id = lease.value().lease();
     std::string svc_key = MakeKey();
     auto put_ret = client.put(svc_key, svc_ip_, lease_id).get();
     if (!put_ret.is_ok()) {
-        LOG_ERROR("Etcd 注册节点 {}, ip: {} 失败：{}", svc_key, svc_ip_, put_ret.error_message());
+        LOG_ERROR("Failed to register node {}, ip: {}: {}", svc_key, svc_ip_, put_ret.error_message());
         return false;
     }
 
@@ -87,12 +87,12 @@ inline bool SvcRegistry::Registry() {
             Registry();
         }
         catch (const std::exception_ptr& e) {
-            std::cout << "keepalive 失败" << std::endl;
+            LOG_ERROR("Keepalive failed");
         }
     };
 
     keepalive_.reset(new ::etcd::KeepAlive(etcd_server_ip_, etcd_constants::kTtl, lease_id));
 
-    LOG_INFO("成功注册服务: svc_name {}, ip {}", svc_name_, svc_ip_);
+    LOG_INFO("Service registered successfully, svc_name: {}, ip: {}", svc_name_, svc_ip_);
     return true;
 }

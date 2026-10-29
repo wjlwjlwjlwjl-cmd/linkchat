@@ -3,9 +3,9 @@
 #include "adapter/logging/logger.h"
 #include "adapter/mail/mail_sender.h"
 
-DEFINE_string(smtp_url, "", "smtp 服务器 url");
-DEFINE_string(smtp_account, "", "smtp 账号名");
-DEFINE_string(smtp_password, "", "smtp 认证密码");
+DEFINE_string(smtp_url, "", "SMTP server url");
+DEFINE_string(smtp_account, "", "SMTP account");
+DEFINE_string(smtp_password, "", "SMTP password");
 
 int main(int argc, char* argv[]) {
     google::SetCommandLineOption("flagfile", "../settings.conf");

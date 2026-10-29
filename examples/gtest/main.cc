@@ -13,12 +13,12 @@ public:
     void SetUp() override {
         g_map.insert(std::make_pair("key1", "hello"));
         g_map.insert(std::make_pair("key2", "world"));
-        std::cout << "GTest 全局事件初始化完成" << std::endl;
+        std::cout << "GTest global environment set up" << std::endl;
     }
     void TearDown() override {
         g_map.clear();
         std::stringstream ss;
-        ss << "GTest 全局事件清理完成" << ", map.size() = " << g_map.size() << std::endl;
+        ss << "GTest global environment torn down" << ", map.size() = " << g_map.size() << std::endl;
         std::cout << ss.str() << std::endl;
     }
 };
@@ -29,23 +29,23 @@ public:
     static void SetUpTestSuite() {
         g_map.insert(std::make_pair("key3", "C++"));
         g_map.insert(std::make_pair("key4", "CMake"));
-        std::cout << "测试套件初始化完成" << std::endl;
+        std::cout << "Test suite set up" << std::endl;
     }
     static void TearDownTestSuite() {
         g_map.erase("key3");
         g_map.erase("key4");
-        std::cout << "测试套件清理完成" << std::endl;
+        std::cout << "Test suite torn down" << std::endl;
     }
 
 protected:
     void SetUp() override {
         g_map.insert(std::make_pair("key5", "gtest"));
-        std::cout << "测试用例初始化完成，map.size() = " << g_map.size() << std::endl;
+        std::cout << "Test case set up, map.size() = " << g_map.size() << std::endl;
     }
     void TearDown() override {
         g_map.erase("key5");
         std::stringstream ss;
-        ss << "测试用例清理完成：" << ", map.size() = " << g_map.size() << std::endl;
+        ss << "Test case torn down" << ", map.size() = " << g_map.size() << std::endl;
         std::cout << ss.str() << std::endl;
     }
 };

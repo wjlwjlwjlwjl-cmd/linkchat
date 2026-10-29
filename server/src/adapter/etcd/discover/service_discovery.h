@@ -44,23 +44,23 @@ inline std::string SvcDiscovery::ParseKey(const std::string& key) {
 
 inline void SvcDiscovery::Callback(::etcd::Response const& response) {
     if (!response.is_ok()) {
-        LOG_ERROR("监听出错：{}", response.error_message());
+        LOG_ERROR("Watch failed: {}", response.error_message());
     }
     for (auto event : response.events()) {
         std::string svc_name = ParseKey(event.kv().key());
         if (event.event_type() == ::etcd::Event::EventType::PUT) {
             //节点上线
-            LOG_INFO("节点上线: Svc, {}; IP, {}", svc_name, event.kv().as_string());
+            LOG_INFO("Service online, svc: {}, ip: {}", svc_name, event.kv().as_string());
             svc_online_(svc_name, event.kv().as_string()); //执行 online 回调
         }
         else if (event.event_type() == ::etcd::Event::EventType::DELETE_) {
             //节点下线
-            LOG_INFO("节点下线: Svc, {}; IP, {}", svc_name, event.prev_kv().as_string());
+            LOG_INFO("Service offline, svc: {}, ip: {}", svc_name, event.prev_kv().as_string());
             svc_offline_(svc_name, event.prev_kv().as_string()); //执行offline 回调
         }
         else {
             //无效通知
-            LOG_WARN("无效通知类型");
+            LOG_WARN("Unsupported event type");
         }
     }
 }
@@ -70,17 +70,17 @@ inline void SvcDiscovery::Watch() {
     auto resp = client.ls("/").get();
     if (resp.is_ok()) {
         if (resp.keys().size() != 0) {
-            LOG_INFO("开启监听时，已有以下节点");
+            LOG_INFO("Existing nodes found when starting watch");
             for (int i = 0; i < resp.keys().size(); i++) {
                 std::string key = resp.key(i);
                 std::string svc_name = ParseKey(key);
                 std::string ip = resp.value().as_string();
 
-                LOG_INFO("Svc, {}; IP, {}", svc_name, ip);
+                LOG_INFO("svc: {}, ip: {}", svc_name, ip);
             }
         }
         else {
-            LOG_INFO("开启监听时，无可用节点");
+            LOG_INFO("No available node when starting watch");
         }
     }
 

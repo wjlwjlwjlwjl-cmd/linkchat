@@ -41,11 +41,11 @@ void CreateIndex(elasticlient::Client& client) {
     );
     auto response = client.index(kIndexName, kDocType, kId, body);
     if (response.status_code < 200 || response.status_code >= 300) {
-        std::cout << "es 索引创建失败: " << response.status_code << std::endl;
+        std::cout << "Create es index failed, status: " << response.status_code << std::endl;
         std::cout << response.text << std::endl;
         return;
     }
-    std::cout << "es 索引创建成功：" << response.text << std::endl;
+    std::cout << "Create es index success: " << response.text << std::endl;
 }
 
 void AddData(elasticlient::Client& client) {
@@ -60,21 +60,21 @@ void AddData(elasticlient::Client& client) {
     );
     auto response = client.index(kIndexName, kDocType, kId, body);
     if (response.status_code < 200 || response.status_code >= 300) {
-        std::cout << "es 数据插入失败: " << response.status_code << std::endl;
+        std::cout << "Add es data failed, status: " << response.status_code << std::endl;
         std::cout << response.text << std::endl;
         return;
     }
-    std::cout << "es 数据插入成功：" << response.text << std::endl;
+    std::cout << "Add es data success: " << response.text << std::endl;
 }
 
 void RemoveData(elasticlient::Client& client) {
     auto response = client.remove(kIndexName, kDocType, "6jvFgKEBpRJXg3MEozEb");
     if (response.status_code < 200 || response.status_code >= 300) {
-        std::cout << "es 数据删除失败: " << response.status_code << std::endl;
+        std::cout << "Remove es data failed, status: " << response.status_code << std::endl;
         std::cout << response.text << std::endl;
         return;
     }
-    std::cout << "es 数据删除成功：" << response.text << std::endl;
+    std::cout << "Remove es data success: " << response.text << std::endl;
 }
 
 void GetData(elasticlient::Client& client) {
@@ -91,11 +91,11 @@ void GetData(elasticlient::Client& client) {
     );
     auto response = client.search(kIndexName, kDocType, query);
     if (response.status_code < 200 || response.status_code >= 300) {
-        std::cout << "es 获取数据失败: " << response.status_code << std::endl;
+        std::cout << "Get es data failed, status: " << response.status_code << std::endl;
         std::cout << response.text << std::endl;
         return;
     }
-    std::cout << "es 获取数据成功：" << response.text << std::endl;
+    std::cout << "Get es data success: " << response.text << std::endl;
 }
 
 int main() {

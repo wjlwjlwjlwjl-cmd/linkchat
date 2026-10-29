@@ -15,7 +15,7 @@ int main() {
 
     channel.declareExchange(exchange_name, AMQP::ExchangeType::direct)
     .onSuccess([&]() {
-        std::cout << "交换机" << exchange_name << "定义成功" << std::endl;
+        std::cout << "Exchange " << exchange_name << " declared successfully" << std::endl;
 
         // 如果需要绑定死信队列：
         // AMQP::table args
@@ -24,32 +24,32 @@ int main() {
         // x-message-ttl，过期时间
         channel.declareQueue(queue_name)
         .onSuccess([&](const std::string& name, uint32_t message_count, uint32_t consumer_count) {
-            std::cout << "队列" << queue_name << "定义成功" << std::endl;
+            std::cout << "Queue " << queue_name << " declared successfully" << std::endl;
             std::cout << "messagecount: " << message_count << ", " << "consumercount: " << consumer_count << std::endl;
 
             channel.bindQueue(exchange_name, queue_name, routing_key)
             .onSuccess([&]() {
-                std::cout << "绑定" << queue_name << "到" << exchange_name << "成功, routing_key: " << routing_key << std::endl;
+                std::cout << "Bound queue " << queue_name << " to exchange " << exchange_name << ", routing_key: " << routing_key << std::endl;
                 bool ret = channel.publish(exchange_name, routing_key, "this is a message send to brocker from publisher");
                 if (!ret) {
-                    std::cout << "消息发布失败" << std::endl;
+                    std::cout << "Failed to publish message" << std::endl;
                 }
                 else {
-                    std::cout << "消息发布成功" << std::endl;
+                    std::cout << "Message published successfully" << std::endl;
                 }
             })
             .onError([&](const char* message) {
-                std::cout << "队列绑定失败: " << message << std::endl;
+                std::cout << "Failed to bind queue: " << message << std::endl;
                 abort();
             });
         })
         .onError([&](const char* message) {
-            std::cout << "队列声明失败: " << message << std::endl;
+            std::cout << "Failed to declare queue: " << message << std::endl;
             abort();
         });
     })
     .onError([&](const char* message) {
-        std::cout << "交换机声明失败: " << message << std::endl;
+        std::cout << "Failed to declare exchange: " << message << std::endl;
         abort();
     });
     ev_run(ev_loop); //开启网络事件循环

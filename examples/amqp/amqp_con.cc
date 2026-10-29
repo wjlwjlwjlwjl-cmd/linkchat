@@ -17,11 +17,11 @@ int main() {
     channel.consume(queue_name)
     .onMessage([&](const AMQP::Message& message, uint64_t delivery_tag, bool redelivered) {
         std::string msg = std::string(message.body(), message.bodySize());
-        std::cout << "消费者消费成功：" << msg << std::endl;;
+        std::cout << "Message consumed: " << msg << std::endl;;
         channel.ack(delivery_tag);
     })
     .onError([&](const char* message) {
-        std::cout << "消费消息失败: " << message << std::endl;
+        std::cout << "Failed to consume message: " << message << std::endl;
     });
 
     ev_run(ev_loop); //开启网络事件循环
