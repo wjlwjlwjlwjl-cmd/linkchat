@@ -18,7 +18,7 @@ public:
     /// @return 预签名 url
     std::string PresignedDownload(const std::string& object_name);
 
-    /// @brief 上传文件（提供二进制数据即可）
+    /// @brief 上传文件（提供二进制数据即可，大小限制 20MB）
     /// @param object_name 文件名
     /// @return 是否上传成功
     bool Upload(const std::string& file_content, const std::string& object_name);
@@ -69,6 +69,11 @@ std::string OSS::PresignedDownload(const std::string& object_name){
 
 bool OSS::Upload(const std::string& file_content, const std::string& object_name){
     if(object_name.empty()) return "";
+
+    const limit = 20 * 1024 * 1024;
+    if(limit < file_content.size()){
+        return false;
+    }
 
     auto content = std::make_shared<std::stringstream>();
     content->write(file_content.data(), file_content.size());
