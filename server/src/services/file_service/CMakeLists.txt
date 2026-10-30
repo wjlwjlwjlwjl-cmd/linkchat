@@ -6,6 +6,6 @@ file(GLOB_RECURSE SRCS "*.cpp")
 add_executable(file_service_bin ${SRCS})
 
 target_link_libraries(
-    file_service_bin  PRIVATE
-    file_proto gflags
+    file_service_bin PRIVATE
+    file_proto gflags adapters util
 )

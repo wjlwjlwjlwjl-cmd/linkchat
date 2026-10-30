@@ -64,7 +64,7 @@ message MessageInfo {
 
 message FileDownloadData {
     string file_id = 1;
-    bytes file_content = 2;
+    string presigned_url = 2;
 }
 
 message FileUploadData {

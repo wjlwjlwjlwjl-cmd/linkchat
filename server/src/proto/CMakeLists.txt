@@ -3,6 +3,7 @@ project(linkchat_proto)
 
 find_package(Protobuf REQUIRED)
 
+# 模块化构建，将 proto 代码构建为静态库
 # base.proto
 protobuf_generate_cpp(BASE_PROTO_SRC BASE_PROTO_HDR base.proto)
 add_library(base_proto STATIC ${BASE_PROTO_SRC} ${BASE_PROTO_HDR})

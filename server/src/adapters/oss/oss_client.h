@@ -7,6 +7,7 @@
 
 class OssClient {
 public:
+    using Ptr = std::shared_ptr<OssClient>;
     OssClient(const std::string& endpoint, const std::string& region, const std::string& bucket_name,
         const std::string& access_id, const std::string& access_key, int64_t url_expiration = 900);
 

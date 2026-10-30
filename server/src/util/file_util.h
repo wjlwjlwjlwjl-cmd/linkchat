@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "adapter/logging/logger.h"
+#include "logging/logger.h"
 
 namespace file {
     inline std::string ReadFileToString(const std::string& path) {
