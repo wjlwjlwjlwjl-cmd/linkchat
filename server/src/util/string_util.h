@@ -23,3 +23,15 @@ inline std::vector<std::string> SplitStr(const std::string& str, char separator)
 
     return ret;
 }
+
+inline std::string GetFileExtension(const std::string& filename) {
+    size_t dot_pos = filename.find_last_of('.');
+    
+    if (dot_pos == std::string::npos || 
+        dot_pos == filename.length() - 1 || 
+        dot_pos == 0) {
+        return ""; // 没有有效后缀
+    }
+    
+    return "." + filename.substr(dot_pos + 1);
+}

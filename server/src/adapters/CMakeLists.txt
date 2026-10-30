@@ -12,5 +12,6 @@ target_link_libraries(
     alibabacloud-oss-cpp-sdk
     brpc leveldb gflags ssl crypto gtest fmt spdlog cpprest etcd-cpp-api
     amqpcpp ev pthread hiredis redis++ odb odb-boost odb-mysql jsoncpp
-    cpr elasticlient curl
+    cpr elasticlient curl protobuf
+    util constants
 )

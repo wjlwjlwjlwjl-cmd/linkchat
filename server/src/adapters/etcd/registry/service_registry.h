@@ -9,9 +9,9 @@
 #include <etcd/KeepAlive.hpp>
 #include <etcd/Client.hpp>
 
-#include "util/random_id.h"
-#include "constants/etcd_constants.h"
-#include "adapter/logging/logger.h"
+#include "random_id.h"
+#include "etcd_constants.h"
+#include "logging/logger.h"
 
 class SvcRegistry {
 public:

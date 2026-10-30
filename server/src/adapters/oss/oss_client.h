@@ -5,6 +5,8 @@
 #include <sstream>
 #include <thread>
 
+#include "string_util.h"
+
 class OssClient {
 public:
     using Ptr = std::shared_ptr<OssClient>;
@@ -53,6 +55,7 @@ inline void OssClient::Init() {
     auto credential_provider = std::make_shared<AlibabaCloud::OSS::SimpleCredentialsProvider>(access_id_, access_key_);
     client_ = std::make_shared<AlibabaCloud::OSS::OssClient>(endpoint_, credential_provider, conf);
     client_->SetRegion(region_);
+    std::cout << access_id_ << " " << access_key_ << " " << endpoint_ << region_ << std::endl;
 }
 
 inline std::string OssClient::PresignedDownload(const std::string& object_name) {
@@ -70,7 +73,6 @@ inline std::string OssClient::PresignedDownload(const std::string& object_name) 
 
 inline bool OssClient::Upload(const std::string& file_content, const std::string& object_name) {
     if (object_name.empty()) return false;
-
     const int64_t kMaxUploadSize = 20 * 1024 * 1024;
     if (kMaxUploadSize < static_cast<int64_t>(file_content.size())) {
         return false;
@@ -83,5 +85,6 @@ inline bool OssClient::Upload(const std::string& file_content, const std::string
     if (outcome.isSuccess()) {
         return true;
     }
+    std::cout << outcome.error().Message() << std::endl;
     return false;
 }
