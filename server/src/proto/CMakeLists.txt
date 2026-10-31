@@ -7,7 +7,8 @@ find_package(Protobuf REQUIRED)
 # base.proto
 protobuf_generate_cpp(BASE_PROTO_SRC BASE_PROTO_HDR base.proto)
 add_library(base_proto STATIC ${BASE_PROTO_SRC} ${BASE_PROTO_HDR})
-target_include_directories(base_proto PUBLIC 
+target_include_directories(
+    base_proto PUBLIC 
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -20,7 +21,24 @@ target_include_directories(file_proto PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(file_proto PUBLIC 
+target_link_libraries(
+    file_proto PUBLIC 
     protobuf 
+    base_proto
+)
+
+# message.proto
+protobuf_generate_cpp(MESSAGE_PROTO_SRC MESSAGE_PROTO_HDR message.proto)
+add_library(
+    message_proto ${MESSAGE_PROTO_SRC} ${MESSAGE_PROTO_HDR}
+)
+target_include_directories(
+    message_proto PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_directories(
+    message_proto PUBLIC
+    protobuf
     base_proto
 )
