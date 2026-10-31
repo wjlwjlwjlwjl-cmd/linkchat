@@ -7,7 +7,7 @@
 #include <amqpcpp.h>
 #include <amqpcpp/libev.h>
 
-#include "constants/amqp_constants.h"
+#include "amqp_constants.h"
 
 /// @brief AMQP 参数
 /// 纯数据载体，使用聚合初始化：DeclareSettings{exchange, exchange_type, queue, binding_key, ttl}

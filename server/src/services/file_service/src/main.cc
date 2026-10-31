@@ -1,4 +1,3 @@
-#include <iostream>
 #include <gflags/gflags.h>
 #include <brpc/server.h>
 
@@ -7,6 +6,7 @@
 #include "server/file_server.h"
 #include "service/file_manager.h"
 #include "dao/OssDao.h"
+#include "service_name.h"
 
 DEFINE_string(aliyun_access_id, "", "aliyun access id");
 DEFINE_string(aliyun_access_key, "", "aliyun access key");
@@ -14,7 +14,6 @@ DEFINE_string(aliyun_endpoint, "", "Endpoint");
 DEFINE_string(aliyun_region, "", "Region");
 DEFINE_string(aliyun_bucket_name, "", "Bucket Name");
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
-DEFINE_string(service_name, "", "service name");
 DEFINE_string(service_ip, "", "service ip");
 DEFINE_int32(idle_timeout_seconds, 100, "connection without data transmition in these time closed");
 DEFINE_int32(server_port, 9000, "brpc server port");
@@ -34,7 +33,7 @@ int main(int argc, char* argv[]){
     auto service = std::make_shared<FileManager>(dao);
     FileServer file_server(service);
 
-    SvcRegistry registry(FLAGS_etcd_server_ip, FLAGS_service_name, FLAGS_service_ip);
+    SvcRegistry registry(FLAGS_etcd_server_ip, service_name::file_service, FLAGS_service_ip);
     if(!registry.Registry()){
         LOG_ERROR("Fail to register to Etcd");
         abort();
@@ -51,9 +50,9 @@ int main(int argc, char* argv[]){
     brpc::ServerOptions options;
     options.idle_timeout_sec = FLAGS_idle_timeout_seconds;
     if(server.Start(FLAGS_server_port, &options) != 0){
-        LOG_ERROR("{} brpc server start fail", FLAGS_service_name);
+        LOG_ERROR("{} brpc server start fail", service_name::file_service);
     }
-    LOG_INFO("{} brpc server start successfully", FLAGS_service_name);
+    LOG_INFO("{} brpc server start successfully", service_name::file_service);
     server.RunUntilAskedToQuit();
 
     return 0;

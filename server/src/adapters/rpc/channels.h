@@ -5,8 +5,8 @@
 #include <brpc/channel.h>
 #include <optional>
 
-#include "constants/rpc_constants.h"
-#include "adapter/logging/logger.h"
+#include "rpc_constants.h"
+#include "logging/logger.h"
 
 using ChannelPtr = std::shared_ptr<brpc::Channel>;
 
@@ -34,8 +34,6 @@ private:
 
 void Channels::Insert(const std::string& addr) {
     //在这里建立这个节点的信道
-    std::unique_lock<std::mutex> lock(mutex_);
-
     brpc::ChannelOptions channel_options;
     channel_options.connect_timeout_ms = rpc_constants::kConnectTimeoutMs;
     channel_options.max_retry = rpc_constants::kMaxRetry;
@@ -47,7 +45,10 @@ void Channels::Insert(const std::string& addr) {
         LOG_ERROR("Failed to initialize channel to {}", addr);
         return;
     }
-    channels_.push_back(std::make_pair(addr, channel));
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        channels_.push_back(std::make_pair(addr, channel));
+    }
 }
 
 bool Channels::Remove(const std::string& addr) {
@@ -68,7 +69,7 @@ ChannelPtr Channels::SelectChannel() {
         return nullptr;
     }
     auto ret_pair = channels_[index_++];
-    index_ %= channels_.size();
+    index_ = (index_ + 1) % channels_.size();
     return ret_pair.second;
 }
 

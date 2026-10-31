@@ -23,6 +23,6 @@ target_include_directories(
 
 target_link_libraries(
     message_storage_bin PRIVATE 
-    message_entity
+    message_entity file_proto
     message_proto adapters util constants 
 )

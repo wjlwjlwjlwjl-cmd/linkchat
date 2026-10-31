@@ -3,7 +3,7 @@
 #include <string>
 #include <amqpcpp.h>
 
-#include "adapter/logging/logger.h"
+#include "logging/logger.h"
 
 //交换机类型
 namespace exchange_type {

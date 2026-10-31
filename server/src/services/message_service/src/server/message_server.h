@@ -23,13 +23,18 @@ public:
                         const ::linkchat::GetHistoryMsgReq* request,
                         ::linkchat::GetHistoryMsgRsp* response,
                         ::google::protobuf::Closure* done);
+    
     void GetRecentMsg(::google::protobuf::RpcController* controller,
                         const ::linkchat::GetRecentMsgReq* request,
                         ::linkchat::GetRecentMsgRsp* response,
                         ::google::protobuf::Closure* done);
+    
     void MsgSearch(::google::protobuf::RpcController* controller,
                         const ::linkchat::MsgSearchReq* request,
                         ::linkchat::MsgSearchRsp* response,
                         ::google::protobuf::Closure* done);
+    
+    //监听rabbitmq回调函数，拿到消息后进行持久化
+    void OnMessage(const char* message, int size);
 private:
 };

@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <string>
-
 namespace rpc_constants {
     inline constexpr char kRpcProtocol[] = "baidu_std";
     inline constexpr int kMaxRetry = 10;

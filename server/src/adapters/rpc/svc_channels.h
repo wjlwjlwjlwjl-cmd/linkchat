@@ -4,11 +4,11 @@
 #pragma once
 
 #include "channels.h"
-#include "adapter/logging/logger.h"
+#include "logging/logger.h"
 
 class SvcChannels {
 public:
-    //增加一个需要管理 channel 的服务
+    //增加一个需要管理 channel 的服务（每次都要调用，如果已添加会跳过）
     inline void AddWatch(const std::string& svc_name);
 
     //给服务增添一个节点
@@ -29,6 +29,9 @@ private:
 
 void SvcChannels::AddWatch(const std::string& svc_name) {
     std::unique_lock lock(mutex_);
+    if(svc_channels_.count(svc_name)){
+        return;
+    }
     svc_channels_[svc_name] = std::make_shared<Channels>();
 }
 
@@ -53,11 +56,18 @@ void SvcChannels::DelNode(const std::string& svc_name, const std::string& addr) 
 }
 
 ChannelPtr SvcChannels::GetChannel(const std::string& svc_name) {
+    std::unique_lock lock(mutex_);
     auto iter = svc_channels_.find(svc_name);
+    if(iter == svc_channels_.end() || iter->second == nullptr){
+        return nullptr;
+    }
     return iter->second->SelectChannel();
 }
 
 std::optional<std::string> SvcChannels::GetAddr(const std::string& svc_name) {
     auto iter = svc_channels_.find(svc_name);
-    return iter->second->SelectAddr();
+    if(iter != svc_channels_.end() && iter->second != nullptr){
+        return iter->second->SelectAddr();
+    }
+    return std::nullopt;
 }

@@ -11,6 +11,7 @@
 #include "message.pb.h"
 #include "file.pb.h"
 #include "etcd/discover/service_discovery.h"
+#include "service_name.h"
 
 class MessageManager{
 public:
@@ -23,7 +24,10 @@ public:
         const char* index_name = "message", const char* doc_type = "_doc", const char* id = "");
 
     //消息持久化
-    bool PersistMessage(::linkchat::MessageInfo& info);
+    bool PersistMessage(::linkchat::MessageInfo& info, std::string& file_id, std::string& errmsg);
 private:
-    std::shared_ptr<MessageDao> dao_;
+    MessageDao::Ptr dao_;
+    
+    SvcDiscovery::Ptr svc_discovery_;
+    brpc::ChannelOptions channel_options_;
 };
