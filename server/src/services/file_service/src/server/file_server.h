@@ -4,7 +4,6 @@
 
 #pragma once
 #include <brpc/server.h>
-#include <gflags/gflags.h>
 #include <butil/logging.h>
 
 #include "file.pb.h"

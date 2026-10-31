@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(linkchat_message_storage)
 
+add_subdirectory(src/entity)
+
 file(GLOB_RECURSE SRCS "*.cc")
 
 add_executable(
@@ -21,5 +23,6 @@ target_include_directories(
 
 target_link_libraries(
     message_storage_bin PRIVATE 
+    message_entity
     message_proto adapters util constants 
 )

@@ -37,7 +37,7 @@ target_include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_directories(
+target_link_libraries(
     message_proto PUBLIC
     protobuf
     base_proto

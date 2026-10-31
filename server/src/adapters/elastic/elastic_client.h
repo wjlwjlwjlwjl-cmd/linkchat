@@ -5,12 +5,19 @@
 #include <string>
 #include <jsoncpp/json/json.h>
 
-#include "adapter/json/json_codec.h"
-#include "adapter/logging/logger.h"
+#include "json/json_codec.h"
+#include "logging/logger.h"
 
 class ElasticClient {
 public:
     using Value = Json::Value;
+
+    /*
+        "content": {
+            "type": "text",
+            "analyzer": "ikmax"
+        }
+    */
     using PropType = std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>;
     using DataType = std::vector<std::pair<std::string, std::string>>;
     ElasticClient() = delete;
