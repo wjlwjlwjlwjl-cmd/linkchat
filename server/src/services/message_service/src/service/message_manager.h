@@ -1,12 +1,3 @@
-// 需要提供的数据服务：
-// 1. 消息元数据存入数据库
-// 2. 文件、图片存入oss
-// 3. 文本信息直接存入 ES
-// 4. 提供 ES、数据库 检索接口
-//
-// !!!! 需构建项目，在build相应目录生成 .sql 建表文件，需要建库建表后运行
-
-
 #include "dao/message_dao.h"
 #include "message.pb.h"
 #include "file.pb.h"
