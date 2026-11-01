@@ -43,6 +43,5 @@ bool MessageServer::OnMessage(const char* message, int size){
         LOG_ERROR("Failed to deserialize message: {}", status.ToString());
         return false;
     }
-    manager_->PersistMessage(message_info);
-    return true;
+    return manager_->PersistMessage(message_info);
 }

@@ -17,6 +17,7 @@ MessageManager::MessageManager(
     SvcDiscovery::ModCallback cb_online = std::function<void(const std::string&, const std::string&)>();
     SvcDiscovery::ModCallback cb_offline = std::function<void(const std::string&, const std::string&)>();
     svc_discovery_ = std::make_shared<SvcDiscovery>(etcd_server_ip, std::move(cb_online), std::move(cb_offline));
+    svc_discovery_->Watch(); // 到 etcd 全量获取一次服务-节点信息
 
     channel_options_.connect_timeout_ms = connect_timeout_ms;
     channel_options_.max_retry = max_retry;
@@ -30,7 +31,9 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     std::string chat_session_id = info.chat_session_id();
     std::string user_id = info.sender().user_id();
     ::linkchat::MessageType message_type = info.message().message_type();
-    dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type);
+    if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type)){
+        return false;
+    }
 
     if(message_type == ::linkchat::MessageType::STRING){
         if(!info.message().has_string_message()){
@@ -43,7 +46,6 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     else if(message_type == ::linkchat::MessageType::FILE){
         // 对于文件、图片类型的消息，上传阿里云对象存储
         std::string ip;
-        svc_discovery_->Watch();
         ChannelPtr channel = svc_discovery_->GetSvcChannel(service_name::file_service, ip);
 
         if (channel->Init(ip.c_str(), &channel_options_) != 0){

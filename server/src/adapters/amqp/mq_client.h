@@ -171,8 +171,20 @@ inline void MqClient::Consume(const std::string& queue, MessageCallback& callbac
 
     channel_.consume(queue)
     .onMessage([=, this](const AMQP::Message& message, uint64_t delivery_tag, bool redelivered) {
-        bool ret = callback(message.body(), message.bodySize());
-        if(ret) channel_.ack(delivery_tag); //回调执行成功，再应答确认
+        bool ret = false;
+        try{
+            ret = callback(message.body(), message.bodySize());
+        }
+        catch(const std::exception& e){
+            LOG_ERROR("Callback threw exception: {}", e.what());
+            ret = false;
+        }
+        if(ret) {
+            channel_.ack(delivery_tag); //回调执行成功，再应答确认
+        }    
+        else{
+            channel_.reject(delivery_tag, false); // 回调执行失败，拒绝并重新入队
+        }
     })
     .onError([=](const char* message) {
         LOG_ERROR("Failed to consume from {}: {}", queue, message);

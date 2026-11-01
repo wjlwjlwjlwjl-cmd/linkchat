@@ -2,6 +2,7 @@
 
 #include <odb/core.hxx>
 #include <odb/nullable.hxx>
+#include <odb/section.hxx>
 #include <string>
 #include <stddef.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -28,13 +29,6 @@ public:
     signed char message_type() const { return message_type_; }
     void set_message_type(signed char v) { message_type_ = v; }
 
-    const odb::nullable<std::string>& content() const { return content_; }
-    void set_content(const odb::nullable<std::string>& v) { content_ = v; }
-    void set_content(const std::string& v) { content_ = v; }
-    void set_content(const char* v) { content_ = std::string(v); }
-    void clear_content() { content_ = odb::nullable<std::string>(); }
-    bool has_content() const { return !content_.null(); }
-
     const odb::nullable<std::string>& file_id() const { return file_id_; }
     void set_file_id(const odb::nullable<std::string>& v) { file_id_ = v; }
     void set_file_id(const std::string& v) { file_id_ = v; }
@@ -52,6 +46,11 @@ public:
     void set_file_size(unsigned long long v) { file_size_ = v; }
     void clear_file_size() { file_size_ = odb::nullable<unsigned long long>(); }
     bool has_file_size() const { return !file_size_.null(); }
+
+    //用来获取 setion 标记为已变更，后续update就可以让 odb 生成部分更新的代码
+    odb::section& file_metadata_section(){
+        return file_metadata_;
+    }
 
 private:
     friend class odb::access;
@@ -74,14 +73,18 @@ private:
     #pragma db type("TINYINT")
     signed char message_type_; // 消息类型
 
-    odb::nullable<std::string> content_; // 消息内容
+    #pragma db update(change)
+    odb::section file_metadata_;
 
+    #pragma db section(file_metadata_)
     #pragma db type("VARCHAR(127)")
-    odb::nullable<std::string> file_id_; // 文件类型，对应上传oss后的file_id
+    odb::nullable<std::string> file_id_;
 
+    #pragma db section(file_metadata_)
     #pragma db type("VARCHAR(127)")
-    odb::nullable<std::string> file_name_; // 文件原名
+    odb::nullable<std::string> file_name_;
 
+    #pragma db section(file_metadata_)
     #pragma db type("BIGINT UNSIGNED")
-    odb::nullable<unsigned long long> file_size_; // 文件大小
+    odb::nullable<unsigned long long> file_size_;
 };

@@ -36,7 +36,7 @@ bool MessageDao::MsgMetadataStore(const std::string& message_id, const std::stri
         MysqlClient::Commit(transaction);
     }
     catch(std::exception& e){
-        LOG_ERROR("Failed to persist message {}", message_id);
+        LOG_WARN("Failed to persist message {}", message_id);
         return false;
     }
     return true;
@@ -56,18 +56,33 @@ bool MessageDao::MsgElasticStore(const std::string& content, const std::string& 
 
 bool MessageDao::UpdateFileMetadata(const std::string& message_id, const std::string& file_name, 
     const std::string& file_id, int file_size){
+    LOG_INFO("update file metadata of {}", message_id);
     try{
         auto transaction = MysqlClient::Transaction(db_);
-        std::string sql = "UPDATE tb_msg set file_name=" + file_name
+        // 存在 sql 注入的问题，而且不优雅
+        /*std::string sql = "UPDATE tb_msg set file_name=" + file_name
             + ", file_id=" + file_id
             + ", file_size=" + std::to_string(file_size)
-            + " where message_id=" + message_id + ";";
-        std::cout << sql << std::endl;
-        db_->execute(sql);
+            + " where message_id=" + message_id + ";";*/
+
+        using query = odb::query<MessageEntity>;
+        auto entity = db_->query_one<MessageEntity>(query::message_id == message_id);
+        if(!entity){
+            LOG_WARN("Message id: {}, cannot be found", message_id);
+            return false;
+        }
+        entity->set_file_id(file_id);
+        entity->set_file_name(file_name);
+        entity->set_file_size(file_size);
+
+        auto& section = entity->file_metadata_section();
+        section.change();
+        db_->update(*entity);
+
         MysqlClient::Commit(transaction);
     }
-    catch(std::runtime_error& e){
-        LOG_ERROR("{} failed to update file msg", e.what());
+    catch(const std::exception& e){
+        LOG_WARN("{} failed to update file msg", e.what());
         return false;
     }
     return true;
