@@ -71,13 +71,17 @@ inline void SvcDiscovery::Callback(::etcd::Response const& response) {
             //节点上线
             LOG_INFO("Service online, svc: {}, ip: {}", svc_name, event.kv().as_string());
             svc_channels_.AddNode(svc_name, event.kv().as_string());
-            svc_online_(svc_name, event.kv().as_string()); //执行 online 回调
+            if(svc_online_){
+                svc_online_(svc_name, event.kv().as_string()); //执行 online 回调
+            }
         }
         else if (event.event_type() == ::etcd::Event::EventType::DELETE_) {
             //节点下线
             LOG_INFO("Service offline, svc: {}, ip: {}", svc_name, event.prev_kv().as_string());
             svc_channels_.DelNode(svc_name, event.prev_kv().as_string());
-            svc_offline_(svc_name, event.prev_kv().as_string()); //执行offline 回调
+            if(svc_offline_){
+                svc_offline_(svc_name, event.prev_kv().as_string()); //执行offline 回调
+            }
         }
         else {
             //无效通知

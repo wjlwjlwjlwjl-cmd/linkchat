@@ -8,14 +8,17 @@ set(persistent_hdr message_entity.h)
 set(generated_srcs "")
 set(generated_hdrs "")
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sql)
+
 foreach(header ${persistent_hdr})
     get_filename_component(base ${header} NAME_WE)
 
     set(gen_cxx ${CMAKE_CURRENT_BINARY_DIR}/${base}-odb.cxx)
     set(gen_hxx ${CMAKE_CURRENT_BINARY_DIR}/${base}-odb.hxx)
+    set(gen_sql ${CMAKE_CURRENT_BINARY_DIR}/${base}.sql)
 
     add_custom_command(
-        OUTPUT ${gen_cxx} ${gen_hxx}
+        OUTPUT ${gen_cxx} ${gen_hxx} ${gen_sql}
         COMMAND ${ODB_COMPILER} 
             -d mysql
             --std c++11
@@ -26,6 +29,8 @@ foreach(header ${persistent_hdr})
             ${CMAKE_CURRENT_SOURCE_DIR}/${header}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${header}
     )
+
+    file(COPY "${gen_sql}" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/sql")
 
     list(APPEND generated_hdrs ${gen_hxx})
     list(APPEND generated_srcs ${gen_cxx})
