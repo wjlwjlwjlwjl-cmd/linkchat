@@ -12,6 +12,7 @@
 #include "string_util.h"
 #include "rpc/svc_channels.h"
 
+/// @brief 使用步骤：调用 Watch 获取到所有服务-节点信息，然后会进行监听；之后调用 GetSvcChannel 获取节点信息
 class SvcDiscovery {
 public:
     using Ptr = std::shared_ptr<SvcDiscovery>;
@@ -22,8 +23,11 @@ public:
 
     void Watch(); //开始进行监听，监听 / 以获取所有服务的节点信息
 
-    ChannelPtr GetSvcChannel(const std::string& svc_name);
-    std::string GetSvcIp(const std::string& svc_name);
+    /// @brief 获取节点信道和ip
+    /// @param svc_name 服务名称
+    /// @param ip 输出型参数，节点IP
+    /// @return 节点信道
+    ChannelPtr GetSvcChannel(const std::string& svc_name, std::string& ip);
 private:
     std::string ParseKey(const std::string& key); //解析出 svc_name
 
@@ -38,18 +42,8 @@ private:
     SvcChannels svc_channels_; // svc_name <-> svc_channel
 };
 
-inline std::string SvcDiscovery::GetSvcIp(const std::string& svc_name){
-    auto ret = svc_channels_.GetAddr(svc_name);
-    if(ret.has_value()){
-        return ret.value();
-    }
-    else{
-        return "";
-    }
-}
-
-inline ChannelPtr SvcDiscovery::GetSvcChannel(const std::string& svc_name){
-    return svc_channels_.GetChannel(svc_name);
+inline ChannelPtr SvcDiscovery::GetSvcChannel(const std::string& svc_name, std::string& ip){
+    return svc_channels_.GetChannel(svc_name, ip);
 }
 
 inline SvcDiscovery::SvcDiscovery(const std::string& etcd_server_ip
@@ -106,7 +100,6 @@ inline void SvcDiscovery::Watch() {
 
                 svc_channels_.AddWatch(svc_name);
                 svc_channels_.AddNode(svc_name, ip);
-                LOG_INFO("svc_name: {}, svc_ip: {}", svc_name, ip);
             }
         }
         else {

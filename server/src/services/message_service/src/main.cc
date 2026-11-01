@@ -69,3 +69,26 @@ int main(int argc, char* argv[]){
 
     return 0;
 }
+
+/*
+
+测试文件类型
+{
+  "message_id": "msg_test_file_001",
+  "chat_session_id": "session_test_888",
+  "sender": {
+    "user_id": "user_123"
+  },
+  "message": {
+    "message_type": "FILE",
+    "file_message": {
+      "file_id": "file_id_test_999",
+      "file_name": "hello.txt",
+      "file_size": "15",
+      "file_contents": "SGVsbG8gUmFiYml0TVEh"
+    }
+  }
+}
+
+
+*/

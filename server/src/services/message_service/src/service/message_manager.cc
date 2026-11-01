@@ -42,8 +42,9 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     }
     else if(message_type == ::linkchat::MessageType::FILE){
         // 对于文件、图片类型的消息，上传阿里云对象存储
-        ChannelPtr channel = svc_discovery_->GetSvcChannel(service_name::file_service);
-        std::string ip = svc_discovery_->GetSvcIp(service_name::file_service);
+        std::string ip;
+        svc_discovery_->Watch();
+        ChannelPtr channel = svc_discovery_->GetSvcChannel(service_name::file_service, ip);
 
         if (channel->Init(ip.c_str(), &channel_options_) != 0){
             LOG_ERROR("Channel Init fail: {}", message_id);

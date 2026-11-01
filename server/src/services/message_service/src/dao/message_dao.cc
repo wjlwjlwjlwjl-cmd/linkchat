@@ -62,6 +62,7 @@ bool MessageDao::UpdateFileMetadata(const std::string& message_id, const std::st
             + ", file_id=" + file_id
             + ", file_size=" + std::to_string(file_size)
             + " where message_id=" + message_id + ";";
+        std::cout << sql << std::endl;
         db_->execute(sql);
         MysqlClient::Commit(transaction);
     }

@@ -18,7 +18,7 @@ public:
     inline void DelNode(const std::string& svc_name, const std::string& addr);
 
     //获取一个节点信道
-    inline ChannelPtr GetChannel(const std::string& svc_name);
+    inline ChannelPtr GetChannel(const std::string& svc_name, std::string& ip);
 
     //获取节点地址
     inline std::optional<std::string> GetAddr(const std::string& svc_name);
@@ -32,7 +32,7 @@ void SvcChannels::AddWatch(const std::string& svc_name) {
     if(svc_channels_.count(svc_name)){
         return;
     }
-    svc_channels_[svc_name] = std::make_shared<Channels>();
+    svc_channels_[svc_name] = std::make_shared<Channels>(svc_name);
 }
 
 void SvcChannels::AddNode(const std::string& svc_name, const std::string& addr) {
@@ -55,19 +55,11 @@ void SvcChannels::DelNode(const std::string& svc_name, const std::string& addr) 
     LOG_INFO("Removed node {} from service {}", addr, svc_name);
 }
 
-ChannelPtr SvcChannels::GetChannel(const std::string& svc_name) {
+ChannelPtr SvcChannels::GetChannel(const std::string& svc_name, std::string& ip) {
     std::unique_lock lock(mutex_);
     auto iter = svc_channels_.find(svc_name);
     if(iter == svc_channels_.end() || iter->second == nullptr){
         return nullptr;
     }
-    return iter->second->SelectChannel();
-}
-
-std::optional<std::string> SvcChannels::GetAddr(const std::string& svc_name) {
-    auto iter = svc_channels_.find(svc_name);
-    if(iter != svc_channels_.end() && iter->second != nullptr){
-        return iter->second->SelectAddr();
-    }
-    return std::nullopt;
+    return iter->second->SelectChannel(ip);
 }
