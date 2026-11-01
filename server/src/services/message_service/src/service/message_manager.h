@@ -15,8 +15,9 @@
 
 class MessageManager{
 public:
+    using Ptr = std::shared_ptr<MessageManager>;
     MessageManager(
-        const std::string& etcd_server_ip, const std::string& protocol, int etcd_port, int connect_timeout_ms,
+        const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
         int timeout_ms, int max_retry,
         const char* user, const char* passwd, const char* db_name = "msg_db", const char* host = "mysql-service",
         unsigned int port = 3306, int connection_pool_size = 5,
@@ -24,7 +25,7 @@ public:
         const char* index_name = "message", const char* doc_type = "_doc", const char* id = "");
 
     //消息持久化
-    bool PersistMessage(::linkchat::MessageInfo& info, std::string& file_id, std::string& errmsg);
+    bool PersistMessage(::linkchat::MessageInfo& info);
 private:
     MessageDao::Ptr dao_;
     

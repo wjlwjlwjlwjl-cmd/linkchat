@@ -42,7 +42,7 @@ class MqClient {
 public:
     //libev 网络库底层并不是线程安全的，因此对于 channel_ 的任何操作，都需要加锁处理，否则会导致行为混乱
     //同时，队列、交换机、路由关系的回调也都是异步的，所以要等待全部完成后，外层函数再返回。这里采取值捕获和条件变量的方式
-    using MessageCallback = std::function<void(const char* message, int message_size)>;
+    using MessageCallback = std::function<bool(const char* message, int message_size)>;
 
     /// @brief 初始化网络协议等
     /// @param broker_url AMQP 服务器连接
@@ -171,8 +171,8 @@ inline void MqClient::Consume(const std::string& queue, MessageCallback& callbac
 
     channel_.consume(queue)
     .onMessage([=, this](const AMQP::Message& message, uint64_t delivery_tag, bool redelivered) {
-        callback(message.body(), message.bodySize());
-        channel_.ack(delivery_tag);
+        bool ret = callback(message.body(), message.bodySize());
+        if(ret) channel_.ack(delivery_tag); //回调执行成功，再应答确认
     })
     .onError([=](const char* message) {
         LOG_ERROR("Failed to consume from {}: {}", queue, message);

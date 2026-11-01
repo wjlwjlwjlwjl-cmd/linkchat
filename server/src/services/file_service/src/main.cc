@@ -27,12 +27,7 @@ int main(int argc, char* argv[]){
     google::SetCommandLineOption("flagfile", "conf/settings.conf");
 
     google::ParseCommandLineFlags(&argc, &argv, true);
-
-    auto dao = std::make_shared<OssDao>(FLAGS_aliyun_endpoint, FLAGS_aliyun_region, FLAGS_aliyun_bucket_name, FLAGS_aliyun_access_id, 
-        FLAGS_aliyun_access_key);
-    auto service = std::make_shared<FileManager>(dao);
-    FileServer file_server(service);
-
+    
     SvcRegistry registry(FLAGS_etcd_server_ip, service_name::file_service, FLAGS_service_ip);
     if(!registry.Registry()){
         LOG_ERROR("Fail to register to Etcd");
@@ -40,8 +35,13 @@ int main(int argc, char* argv[]){
     }
     LOG_INFO("Successfully register to Etcd");
 
-    brpc::Server server;
 
+    auto dao = std::make_shared<OssDao>(FLAGS_aliyun_endpoint, FLAGS_aliyun_region, FLAGS_aliyun_bucket_name, FLAGS_aliyun_access_id, 
+        FLAGS_aliyun_access_key);
+    auto service = std::make_shared<FileManager>(dao);
+    FileServer file_server(service);
+
+    brpc::Server server;
     if(server.AddService(&file_server, brpc::SERVER_DOESNT_OWN_SERVICE) != 0){
         LOG_ERROR("Fail to add service to brpc server");
         abort();

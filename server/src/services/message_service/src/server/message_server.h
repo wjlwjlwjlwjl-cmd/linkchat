@@ -15,10 +15,22 @@
 #include <butil/logging.h>
 
 #include "message.pb.h"
+#include "service/message_manager.h"
+#include "json/json_codec.h"
+#include "google/protobuf/util/json_util.h"
 
 using namespace linkchat;
 class MessageServer: public MsgStorageService{
 public:
+    MessageServer(
+        const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
+                int timeout_ms, int max_retry,
+                const char* user, const char* passwd, const char* db_name = "msg_db", const char* host = "mysql-service",
+                unsigned int port = 3306, int connection_pool_size = 5,
+                const char* elastic_url = "http://elastic:123456@elasticsearch-service:9200/",
+                const char* index_name = "message", const char* doc_type = "_doc", const char* id = ""
+    );
+    
     void GetHistoryMsg(::google::protobuf::RpcController* controller,
                         const ::linkchat::GetHistoryMsgReq* request,
                         ::linkchat::GetHistoryMsgRsp* response,
@@ -35,6 +47,7 @@ public:
                         ::google::protobuf::Closure* done);
     
     //监听rabbitmq回调函数，拿到消息后进行持久化
-    void OnMessage(const char* message, int size);
+    bool OnMessage(const char* message, int size);
 private:
+    MessageManager::Ptr manager_;
 };

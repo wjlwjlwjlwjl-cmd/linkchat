@@ -4,7 +4,7 @@
 #include "service_name.h"
 
 MessageManager::MessageManager(
-    const std::string& etcd_server_ip, const std::string& protocol, int etcd_port, int connect_timeout_ms,
+    const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
     int timeout_ms, int max_retry,
     const char* user, const char* passwd, const char* db_name, const char* host,
     unsigned int port, int connection_pool_size,
@@ -24,8 +24,7 @@ MessageManager::MessageManager(
     channel_options_.protocol = protocol;
 }
 
-bool MessageManager::PersistMessage(::linkchat::MessageInfo& info, std::string& file_id, 
-    std::string& errmsg){
+bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     // 取出消息的 metadata，并对所有消息的消息原信息进行存储
     std::string message_id = info.message_id();
     std::string chat_session_id = info.chat_session_id();
@@ -59,18 +58,19 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info, std::string& 
         std::string file_contents = info.message().file_message().file_contents();
         req.mutable_file_data()->set_file_name(file_name);
         req.mutable_file_data()->set_file_content(file_contents);
-        
+
         auto* controller = new ::brpc::Controller();
         auto* response = new ::linkchat::PutSingleFileRsp();
         stub.PutSingleFile(controller, &req, response, nullptr); //这里采取同步调用，等待结果
+
         if(response->success() == false){
-            file_id = "";
-            errmsg = response->errmsg();
             return false;
         }
         else{
-            file_id = response->file_info().file_id();
-            return true;
+            //远程调用成功，将file_id 设置进数据库
+            std::string file_id = response->file_info().file_id();
+            int file_size = file_contents.size();
+            return dao_->UpdateFileMetadata(message_id, file_name, file_id, file_size);
         }
     }
     else{

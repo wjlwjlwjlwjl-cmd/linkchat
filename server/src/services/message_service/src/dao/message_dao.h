@@ -17,11 +17,15 @@ public:
         const char* index_name = "message", const char* doc_type = "_doc", const char* id = "");
 
     bool MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id, 
-        const std::string user_id, ::linkchat::MessageType& messageType);
+        const std::string from_user_id, ::linkchat::MessageType& messageType);
 
     // content 进行检索，并且通过 chat_session_id 进行对话过滤，因此需要插入 content（text），chat_session_id（keyword）
     bool MsgElasticStore(const std::string& content, const std::string& chat_session_id,
         const std::string& message_id, const std::string& from_user_id);
+    
+    //在调用完文件存储后，更新file_name、file_id、file_size
+    bool UpdateFileMetadata(const std::string& message_id, const std::string& file_name, 
+        const std::string& file_id, int file_size);
 private:
     std::shared_ptr<odb::database> db_;
 

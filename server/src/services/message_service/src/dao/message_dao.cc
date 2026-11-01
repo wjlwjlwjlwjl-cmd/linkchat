@@ -1,17 +1,17 @@
 #include "message_dao.h"
 #include "odb_mysql/mysql_client.h"
 #include "logging/logger.h"
-#include "file.pb.h" //进行文件存储子服务调用
+#include <stdexcept>
 
-MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name, const char* host, 
-    unsigned int port, int connection_pool_size, const char* elastic_url, 
+MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name, const char* host,
+    unsigned int port, int connection_pool_size, const char* elastic_url,
     const char* index_name, const char* doc_type, const char* id)
 {
     db_ = MysqlClient::Create(user, passwd, db_name, host, port, connection_pool_size);
 
     es_ = std::make_shared<ElasticClient>(index_name, doc_type, id);
     ElasticClient::PropType props = {
-        {"content", {{"type", "text"}, {"analyzer", "ikmax"}}}, 
+        {"content", {{"type", "text"}, {"analyzer", "ikmax"}}},
         {"to_chat_session_id", {{"type", "keyword"}}},
         {"message_id", {{"type", "keyword"}}},
         {"from_user_id", {{"type", "keyword"}}}
@@ -21,7 +21,7 @@ MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name
     }
 }
 
-bool MessageDao::MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id, 
+bool MessageDao::MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id,
     const std::string user_id, ::linkchat::MessageType& messageType){
     MessageEntity msg;
     msg.set_message_id(message_id);
@@ -52,4 +52,22 @@ bool MessageDao::MsgElasticStore(const std::string& content, const std::string& 
         {"from_user_id", from_user_id}
     };
     return es_->AddData(data);
+}
+
+bool MessageDao::UpdateFileMetadata(const std::string& message_id, const std::string& file_name, 
+    const std::string& file_id, int file_size){
+    try{
+        auto transaction = MysqlClient::Transaction(db_);
+        std::string sql = "UPDATE tb_msg set file_name=" + file_name
+            + ", file_id=" + file_id
+            + ", file_size=" + std::to_string(file_size)
+            + " where message_id=" + message_id + ";";
+        db_->execute(sql);
+        MysqlClient::Commit(transaction);
+    }
+    catch(std::runtime_error& e){
+        LOG_ERROR("{} failed to update file msg", e.what());
+        return false;
+    }
+    return true;
 }
