@@ -29,14 +29,15 @@ enum MessageType {
     FILE = 1;
 }
 message StringMessageInfo {
-    string content = 1;//文字聊天内容
+    string content = 1;//文字聊天内容，在 ES 中已经存储，从 ES 中获取
 }
 message FileMessageInfo {
     optional string file_id = 1;//文件id,客户端发送的时候不用设置
     optional int64 file_size = 2;//文件大小
     optional string file_name = 3;//文件名称
     //文件数据，在ES中存储消息的时候只要id和元信息，不要文件数据, 服务端转发的时候也不需要填充
-    optional bytes file_contents = 4;
+    optional bytes file_content = 4; // 上传文件时，这里是文件base64编码的二进制内容
+    //optional string presigned_url = 5; // 下载文件时，这里放预签名 url；（网关转接文件服务rpc，预签名连接实时获取）
 }
 message MessageContent {
     MessageType message_type = 1; //消息类型

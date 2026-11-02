@@ -38,6 +38,7 @@ foreach(header ${persistent_hdr})
     add_custom_command(
         OUTPUT ${dst_sql}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${gen_sql} ${dst_sql}
+        DEPENDS ${gen_sql}
     )
 
     list(APPEND generated_hdrs ${gen_hxx})
@@ -45,7 +46,7 @@ foreach(header ${persistent_hdr})
 endforeach()
 
 add_library(
-    message_entity STATIC ${generated_srcs} ${generated_hdrs}
+    message_entity STATIC ${generated_srcs}
 )
 target_include_directories(
     message_entity PUBLIC 

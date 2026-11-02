@@ -17,6 +17,13 @@ public:
 
     //消息持久化
     bool PersistMessage(::linkchat::MessageInfo& info);
+
+    // 三个 brpc 接口
+    void GetHistoryMsg(const ::linkchat::GetHistoryMsgReq& request, ::linkchat::GetHistoryMsgRsp&);
+    
+    void GetRecentMsg(const ::linkchat::GetRecentMsgReq& request, ::linkchat::GetRecentMsgRsp&);
+    
+    void MsgSearch(const ::linkchat::MsgSearchReq& request, ::linkchat::MsgSearchRsp&);
 private:
     MessageDao::Ptr dao_;
     

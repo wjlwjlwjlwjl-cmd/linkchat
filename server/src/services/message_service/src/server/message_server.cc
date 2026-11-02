@@ -1,5 +1,6 @@
 #include "message_server.h"
 #include "base.pb.h"
+#include <brpc/closure_guard.h>
 
 MessageServer::MessageServer(
     const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
@@ -18,21 +19,36 @@ void MessageServer::GetHistoryMsg(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetHistoryMsgReq* request,
                     ::linkchat::GetHistoryMsgRsp* response,
                     ::google::protobuf::Closure* done){
-                        
+    brpc::ClosureGuard guard(done);
+    manager_->GetHistoryMsg(*request, *response);
+    response->set_success(true);
+    response->set_request_id(request->request_id());
 }
 
 void MessageServer::GetRecentMsg(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetRecentMsgReq* request,
                     ::linkchat::GetRecentMsgRsp* response,
                     ::google::protobuf::Closure* done){
-                        
+    brpc::ClosureGuard guard(done);
+    manager_->GetRecentMsg(*request, *response);
+    response->set_success(true);
+    response->set_request_id(request->request_id());
 }
 
 void MessageServer::MsgSearch(::google::protobuf::RpcController* controller,
                     const ::linkchat::MsgSearchReq* request,
                     ::linkchat::MsgSearchRsp* response,
                     ::google::protobuf::Closure* done){
-                        
+    brpc::ClosureGuard guard(done);
+    if(request->chat_session_id().empty() || request->search_key().empty()){
+        response->set_request_id(request->request_id());
+        response->set_success(false);
+        response->set_errmsg("chat_session_id and search_key must not be empty");
+        return;
+    }
+    manager_->MsgSearch(*request, *response);
+    response->set_success(true);
+    response->set_request_id(request->request_id());
 }
 
 bool MessageServer::OnMessage(const char* message, int size){

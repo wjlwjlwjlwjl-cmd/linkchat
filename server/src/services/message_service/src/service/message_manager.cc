@@ -1,5 +1,6 @@
 #include "message_manager.h"
 #include "etcd/discover/service_discovery.h"
+#include "message.pb.h"
 #include "rpc/channels.h"
 #include "service_name.h"
 
@@ -31,7 +32,8 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     std::string chat_session_id = info.chat_session_id();
     std::string user_id = info.sender().user_id();
     ::linkchat::MessageType message_type = info.message().message_type();
-    if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type)){
+    std::string content = message_type == ::linkchat::MessageType::STRING ? info.message().string_message().content() : "";
+    if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type, content)){
         return false;
     }
 
@@ -58,21 +60,23 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
 
         //这里暂时没有处理 request_id
         std::string file_name = info.message().file_message().file_name();
-        std::string file_contents = info.message().file_message().file_contents();
+        std::string file_content = info.message().file_message().file_content();
         req.mutable_file_data()->set_file_name(file_name);
-        req.mutable_file_data()->set_file_content(file_contents);
+        req.mutable_file_data()->set_file_content(file_content);
 
-        auto* controller = new ::brpc::Controller();
-        auto* response = new ::linkchat::PutSingleFileRsp();
-        stub.PutSingleFile(controller, &req, response, nullptr); //这里采取同步调用，等待结果
+        std::unique_ptr<brpc::Controller> controller(new ::brpc::Controller());
+        std::unique_ptr<::linkchat::PutSingleFileRsp> response(new ::linkchat::PutSingleFileRsp());
+        stub.PutSingleFile(controller.get(), &req, response.get(), nullptr); //这里采取同步调用，等待结果
 
-        if(response->success() == false){
+        if(controller->Failed()){
+            LOG_ERROR("Failed to call rpc service from {}: {}", service_name::file_service, controller->ErrorText());
             return false;
         }
         else{
             //远程调用成功，将file_id 设置进数据库
+            LOG_INFO("start to update file msg info {}", message_id);
             std::string file_id = response->file_info().file_id();
-            int file_size = file_contents.size();
+            int file_size = file_content.size();
             return dao_->UpdateFileMetadata(message_id, file_name, file_id, file_size);
         }
     }
@@ -81,4 +85,27 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
         return false;
     }
     return false;
+}
+
+void MessageManager::GetHistoryMsg(const ::linkchat::GetHistoryMsgReq& request, ::linkchat::GetHistoryMsgRsp& rsp){
+    using namespace linkchat;
+    auto msgs = dao_->GetHistroyMsg(request.chat_session_id(), request.start_time(),
+        request.over_time(), request.user_id());
+    rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
+}
+
+void MessageManager::GetRecentMsg(const ::linkchat::GetRecentMsgReq& request, ::linkchat::GetRecentMsgRsp& rsp){
+    using namespace linkchat;
+    auto msgs = dao_->GetRecentMsg(request.chat_session_id(), request.msg_count(),
+        request.cur_time(), request.user_id());
+    rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
+}
+
+void MessageManager::MsgSearch(const ::linkchat::MsgSearchReq& request, ::linkchat::MsgSearchRsp& rsp){
+    using namespace linkchat;
+    if(request.chat_session_id().empty() || request.search_key().empty()){
+        return;
+    }
+    auto msgs = dao_->MsgSearch(request.chat_session_id(), request.user_id(), request.search_key());
+    rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
 }

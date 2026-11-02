@@ -22,7 +22,7 @@ public:
     using DataType = std::vector<std::pair<std::string, std::string>>;
     ElasticClient() = delete;
 
-    ElasticClient(const std::string& index_name, const std::string& doc_type = "_doc", const std::string id = "",
+    inline ElasticClient(const std::string& index_name, const std::string& doc_type = "_doc", const std::string id = "",
         const std::vector<std::string>& urls = {"http://elastic:123456@elasticsearch-service:9200/"})
         : client_(std::make_shared<elasticlient::Client>(urls))
         , index_name_(index_name)
@@ -30,7 +30,7 @@ public:
         , id_(id)
     {}
 
-    bool CreateIndex(PropType& properties, const std::string& type = "custom",
+    inline bool CreateIndex(PropType& properties, const std::string& type = "custom",
         const std::string& tokenizer = "ik_max_word", bool dynamic = false
     ) {
         Value root;
@@ -59,7 +59,12 @@ public:
         root["mappings"] = mappings;
 
         std::string body = JsonCodec::Serialize(root);
-        auto resp = client_->index(index_name_, doc_type_, id_, body);
+        // 用 PUT /{index} 真正创建索引；索引已存在时 ES 返回 400，忽略即可，保证每次启动都可安全调用
+        auto resp = client_->performRequest(elasticlient::Client::HTTPMethod::PUT, index_name_, body);
+        if (resp.status_code == 400 && resp.text.find("resource_already_exists_exception") != std::string::npos) {
+            LOG_INFO("es index {} already exists", index_name_);
+            return true;
+        }
         if (resp.status_code < 200 || resp.status_code >= 300) {
             LOG_ERROR("Create es index fail, {}", resp.text);
             return false;
@@ -83,33 +88,51 @@ public:
         return true;
     }
 
-    Value SelectTerm(const std::string& term, const std::string& val) {
-        Value root;
-        root["query"]["term"][term] = val;
-        std::string body = JsonCodec::Serialize(root);
-        auto resp = client_->search(index_name_, doc_type_, body);
-        if (resp.status_code < 200 || resp.status_code >= 300) {
-            LOG_ERROR("es precise search fail: {}", resp.text);
+    /// @brief 精确查询 + 模糊匹配
+    /// @param terms 精确查询字段 + 值
+    /// @param matches 模糊匹配字段 + 值
+    /// @return 结果 json 
+    inline Value SelectTermAndMatch(
+        std::vector<std::pair<std::string, std::string>>& terms, 
+        std::vector<std::pair<std::string, std::string>>& matches
+    ) {
+        if(terms.empty() || matches.empty()){
             return Value();
         }
-        LOG_INFO("es precise search success");
-        return JsonCodec::Deserialize(resp.text);
-    }
-
-    Value SelectMatch(const std::string& match, const std::string& val) {
         Value root;
-        root["query"]["match"][match] = val;
-        std::string body = JsonCodec::Serialize(root);
-        auto resp = client_->search(index_name_, doc_type_, body);
-        if (resp.status_code < 200 || resp.status_code >= 300) {
-            LOG_ERROR("es match search fail: {}", resp.text);
+        Value must_array;
+
+        for(auto& [key, val]: terms){
+            if(key.empty() || val.empty()) continue;
+            Value item;
+            item["term"][key] = val;
+            must_array.append(item);
+        }
+        for(auto& [key, val]: matches){
+            if(key.empty() || val.empty()) continue;
+            Value item;
+            item["match"][key] = val;
+            must_array.append(item);
+        }
+        root["query"]["bool"]["must"] = must_array;
+
+        try{
+            std::string body = JsonCodec::Serialize(root);
+            auto resp = client_->search(index_name_, doc_type_, body);
+            if (resp.status_code < 200 || resp.status_code >= 300) {
+                LOG_ERROR("es precise search fail: {}", resp.text);
+                return Value();
+            }
+            LOG_INFO("es search success");
+            return JsonCodec::Deserialize(resp.text);
+        }
+        catch(const std::exception& e){
+            LOG_ERROR("es search fail: {}", e.what());
             return Value();
         }
-        LOG_INFO("es match search success");
-        return JsonCodec::Deserialize(resp.text);
     }
 
-    std::string Id(const Value& raw, int index) {
+    inline std::string Id(const Value& raw, int index) {
         Value hits = raw["hits"]["hits"];
         if (!hits.isArray() || hits.size() <= index) {
             return "";
@@ -122,7 +145,7 @@ public:
         return hit["_id"].asString();
     }
 
-    void Remove(const std::string& id) {
+    inline void Remove(const std::string& id) {
         if (id.empty()) {
             return;
         }

@@ -13,7 +13,7 @@
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
 DEFINE_string(service_ip, "", "service ip");
 DEFINE_int32(connection_timeout_seconds, 10, "time to wait when cannot connect to brpc server");
-DEFINE_int32(idle_timeout_seconds, 100, "connection without data transmition in these time closed");
+DEFINE_int32(idle_timeout_seconds, 5000, "connection without data transmition in these time closed");
 DEFINE_int32(max_retry, 3, "max retry");
 DEFINE_string(mysql_user, "root", "mysql user");
 DEFINE_string(mysql_passwd, "123456", "mysql passwd");
@@ -71,6 +71,20 @@ int main(int argc, char* argv[]){
 }
 
 /*
+测试文字类型
+{
+  "message_id": "msg_10001",
+  "chat_session_id": "session_888",
+  "sender": {
+    "user_id": "user_123",
+  },
+  "message": {
+    "message_type": "STRING",
+    "string_message": {
+      "content": "你好，这是一条测试文字消息！"
+    }
+  }
+}
 
 测试文件类型
 {
@@ -85,7 +99,7 @@ int main(int argc, char* argv[]){
       "file_id": "file_id_test_999",
       "file_name": "hello.txt",
       "file_size": "15",
-      "file_contents": "SGVsbG8gUmFiYml0TVEh"
+      "file_content": "SGVsbG8gUmFiYml0TVEh"
     }
   }
 }

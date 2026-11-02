@@ -17,7 +17,6 @@
 
 #include "message.pb.h"
 #include "service/message_manager.h"
-#include "json/json_codec.h"
 #include "google/protobuf/util/json_util.h"
 
 using namespace linkchat;

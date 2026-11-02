@@ -2,6 +2,7 @@
 #include <odb/database.hxx>
 #include <elasticlient/client.h>
 #include <cpr/response.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "message.pb.h"
 #include "elastic/elastic_client.h"
@@ -17,7 +18,7 @@ public:
         const char* index_name = "message", const char* doc_type = "_doc", const char* id = "");
 
     bool MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id, 
-        const std::string from_user_id, ::linkchat::MessageType& messageType);
+        const std::string& from_user_id, ::linkchat::MessageType& messageType, const std::string& content);
 
     // content 进行检索，并且通过 chat_session_id 进行对话过滤，因此需要插入 content（text），chat_session_id（keyword）
     bool MsgElasticStore(const std::string& content, const std::string& chat_session_id,
@@ -26,6 +27,21 @@ public:
     //在调用完文件存储后，更新file_name、file_id、file_size
     bool UpdateFileMetadata(const std::string& message_id, const std::string& file_name, 
         const std::string& file_id, int file_size);
+
+    /// @brief 获取最近 N 条消息
+    /// @param chat_session_id  聊天会话 id
+    /// @param msg_count  期望获取的条数
+    /// @param cur_time  当前时间（64位时间戳）
+    /// @param user_id  用户id
+    /// @return  获取到的消息列表（类型 MessageInto）
+    std::vector<::linkchat::MessageInfo> GetRecentMsg(const std::string& chat_session_id, int msg_count, 
+        int64_t cur_time, const std::string& user_id);
+
+    std::vector<::linkchat::MessageInfo> GetHistroyMsg(const std::string& chat_session_id, int64_t start_time, 
+        int64_t end_time, const std::string& user_id);
+
+    std::vector<::linkchat::MessageInfo> MsgSearch(const std::string& chat_session_id, const std::string& user_id,
+        const std::string& search_key);
 private:
     std::shared_ptr<odb::database> db_;
 

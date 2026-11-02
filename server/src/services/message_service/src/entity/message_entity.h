@@ -29,6 +29,12 @@ public:
     signed char message_type() const { return message_type_; }
     void set_message_type(signed char v) { message_type_ = v; }
 
+    const odb::nullable<std::string>& content() const { return content_; }
+    void set_content(const odb::nullable<std::string>& v) { content_ = v; }
+    void set_content(const std::string& v) { content_ = v; }
+    void clear_content() { content_ = odb::nullable<std::string>(); }
+    bool has_content() const { return !content_.null(); }
+
     const odb::nullable<std::string>& file_id() const { return file_id_; }
     void set_file_id(const odb::nullable<std::string>& v) { file_id_ = v; }
     void set_file_id(const std::string& v) { file_id_ = v; }
@@ -72,6 +78,9 @@ private:
 
     #pragma db type("TINYINT")
     signed char message_type_; // 消息类型
+
+    #pragma db type("TEXT")
+    odb::nullable<std::string> content_; //消息内容（文字类型)
 
     #pragma db update(change)
     odb::section file_metadata_;
