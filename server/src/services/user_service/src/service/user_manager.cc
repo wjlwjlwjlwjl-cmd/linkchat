@@ -91,7 +91,7 @@ CommonDTO UserManager::SendVerifyCode(const std::string &email){
     }
 
     auto verify_code_key = redis_constants::email_verify_code_key + email;
-    if(!redis_template_->set(verify_code_key, verify_code, redis_constants::email_verify_code_expire)){
+    if(!redis_template_->set(verify_code_key, verify_code, std::chrono::milliseconds(redis_constants::email_verify_code_expire))){
         LOG_WARN("Failed to set verify code in redis");
         return {false, "Please try again later"};
     }
@@ -108,7 +108,7 @@ CommonDTO UserManager::SetUserAvatar(const std::string& user_id, const std::stri
     std::string ip;
     ChannelPtr channel = svc_discovery_->GetSvcChannel(service_name::file_service, ip);
 
-    if(!channel->Init(ip.c_str(), &channel_options_)){
+    if(channel->Init(ip.c_str(), &channel_options_) != 0){
         LOG_ERROR("Failed to init channel");
         return {false, "Failed to init channel"};
     }

@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){
         LOG_ERROR("Fail to start brpc server {} on port {}", service_name::user_service, FLAGS_server_port);
         abort();
     }
-    LOG_INFO("{} brpc server start successfully", service_name::message_storage_service);
+    LOG_INFO("{} brpc server start successfully", service_name::user_service);
     server.RunUntilAskedToQuit();
 
     return 0;
