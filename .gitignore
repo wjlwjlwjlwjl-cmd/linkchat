@@ -1,0 +1,6 @@
+.idea
+.vscode
+build
+settings.conf
+.cache
+.clangd
