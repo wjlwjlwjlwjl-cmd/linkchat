@@ -95,6 +95,7 @@ CommonDTO UserManager::SendVerifyCode(const std::string &email){
         LOG_WARN("Failed to set verify code in redis");
         return {false, "Please try again later"};
     }
+    // 这里后续使用验证码后，需要删除 redis 中的验证码
 
     return {true, ""};
 }
