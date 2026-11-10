@@ -12,7 +12,6 @@ void UserServer::UserRegister(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     CommonDTO ret = user_manager_->Register(request->nickname(), request->password(), request->email(), request->verify_code());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
 }
@@ -23,7 +22,6 @@ void UserServer::NicknameLogin(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     LoginDTO ret = user_manager_->NicknameLogin(request->nickname(), request->password());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
     response->set_jwt_token(ret.token);
@@ -35,7 +33,6 @@ void UserServer::EmailLogin(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     LoginDTO ret = user_manager_->EmailLogin(request->email(), request->verify_code());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
     response->set_jwt_token(ret.token);
@@ -47,7 +44,6 @@ void UserServer::GetEmailVerifyCode(::google::protobuf::RpcController* controlle
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     CommonDTO ret = user_manager_->SendVerifyCode(request->email());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
 }
@@ -58,7 +54,6 @@ void UserServer::GetUserInfo(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     auto info = user_manager_->GetUserInfo(request->user_id());
-    response->set_request_id(request->request_id());
     response->set_success(true);
     response->set_errmsg("");
 
@@ -92,7 +87,6 @@ void UserServer::GetMultiUserInfo(::google::protobuf::RpcController* controller,
 
         users_info->insert({user_id, user_info});
     }
-    response->set_request_id(request->request_id());
     response->set_success(true);
     response->set_errmsg("");
 }
@@ -103,7 +97,6 @@ void UserServer::SetUserAvatar(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     CommonDTO ret = user_manager_->SetUserAvatar(request->user_id(), request->avatar());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
 }
@@ -114,7 +107,6 @@ void UserServer::SetUserNickname(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     CommonDTO ret = user_manager_->SetUserNickname(request->user_id(), request->nickname());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
 }
@@ -125,7 +117,6 @@ void UserServer::SetUserDescription(::google::protobuf::RpcController* controlle
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
     CommonDTO ret = user_manager_->SetUserDescription(request->user_id(), request->description());
-    response->set_request_id(request->request_id());
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);
 }

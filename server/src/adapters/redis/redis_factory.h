@@ -13,7 +13,7 @@ namespace redis_factory {
 
     class RedisFactory {
     public:
-        std::shared_ptr<sw::redis::Redis> Create(const RedisConnectionInfo& info);
+        static std::shared_ptr<sw::redis::Redis> Create(const RedisConnectionInfo& info);
     };
 
     inline std::shared_ptr<sw::redis::Redis> RedisFactory::Create(const RedisConnectionInfo& info) {

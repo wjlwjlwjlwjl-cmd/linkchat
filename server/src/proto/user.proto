@@ -5,131 +5,120 @@ option cc_generic_services = true;
 
 //注册   
 message UserRegisterReq {
-    string request_id = 1;
-    string nickname = 2; // 昵称
-    string password = 3; //用户密码
-    string email = 4; // 邮箱
-    string verify_code = 5; //邮箱验证码
+    string nickname = 1; // 昵称
+    string password = 2; //用户密码
+    string email = 3; // 邮箱
+    string verify_code = 4; //邮箱验证码
 }
 message UserRegisterRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3;
+    bool success = 1;
+    string errmsg = 2;
 }
 
 //用户名登录 
 message NicknameLoginReq {
-    string request_id = 1;
-    string nickname = 2;
-    string password = 3;
+    string nickname = 1;
+    string password = 2;
 }
 message NicknameLoginRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3;
-    string jwt_token = 4;
+    bool success = 1;
+    string errmsg = 2;
+    string jwt_token = 3;
 }
 
 //邮箱验证码获取（验证码ttl放在服务层）
 message EmailVerifyCodeReq {
-    string request_id = 1;
-    string email = 2;
+    string email = 1;
 }
 message EmailVerifyCodeRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3;
+    bool success = 1;
+    string errmsg = 2;
 }
 
 //邮箱登录
 message EmailLoginReq {
-    string request_id = 1;
-    string email = 2;
-    string verify_code = 3;
+    string email = 1;
+    string verify_code = 2;
 }
 message EmailLoginRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    string jwt_token = 4; // 含有用户身份信息的鉴权字符串
+    bool success = 1;
+    string errmsg = 2; 
+    string jwt_token = 3; // 含有用户身份信息的鉴权字符串
 }
 
 //个人信息获取-这个只用于获取当前登录用户的信息
 //客户端传递的时候只需要填充session_id即可
 //其他个人/好友信息的获取在好友操作中完成
 message GetUserInfoReq {
-    string request_id = 1;
-    optional string user_id = 2;    // 引入 jwt token 后，这里采取将 user_id 放到 jwt token 中
-    optional string session_id = 3; // 进行客户端身份识别的关键字段
+    optional string user_id = 1;    // 引入 jwt token 后，这里采取将 user_id 放到 jwt token 中
 }
 message GetUserInfoRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    UserInfo user_info = 4;
+    bool success = 1;
+    string errmsg = 2; 
+    UserInfo user_info = 3;
 }
 message GetMultiUserInfoReq {
-    string request_id = 1;
-    repeated string users_id = 2;
+    repeated string users_id = 1;
 }
 message GetMultiUserInfoRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    map<string, UserInfo> users_info = 4;
+    bool success = 1;
+    string errmsg = 2; 
+    map<string, UserInfo> users_info = 3;
 }
 //----------------------------
 //用户头像修改 
 message SetUserAvatarReq {
-    string request_id = 1;
-    optional string user_id = 2;
-    optional string session_id = 3;
-    bytes avatar = 4;
+    optional string user_id = 1;
+    bytes avatar = 2;
 }
 message SetUserAvatarRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
+    bool success = 1;
+    string errmsg = 2; 
 }
-//----------------------------
+
 //用户昵称修改 
 message SetUserNicknameReq {
-    string request_id = 1;
-    optional string user_id = 2;
-    optional string session_id = 3;
-    string nickname = 4;
+    optional string user_id = 1;
+    string nickname = 2;
 }
 message SetUserNicknameRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
+    bool success = 1;
+    string errmsg = 2; 
 }
-//----------------------------
+
 //用户签名修改 
 message SetUserDescriptionReq {
-    string request_id = 1;
-    optional string user_id = 2;
-    optional string session_id = 3;
-    string description = 4;
+    optional string user_id = 1;
+    string description = 2;
 }
 message SetUserDescriptionRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
+    bool success = 1;
+    string errmsg = 2; 
 }
 
+// 用户服务接口
 service UserService {
+    // 用户注册
     rpc UserRegister(UserRegisterReq) returns (UserRegisterRsp);
 
+    // 用户名登录
     rpc NicknameLogin(NicknameLoginReq) returns (NicknameLoginRsp);
+    // 邮箱登录
     rpc EmailLogin(EmailLoginReq) returns (EmailLoginRsp);
 
+    // 邮箱验证码获取
+    // 验证码ttl放在服务层
     rpc GetEmailVerifyCode(EmailVerifyCodeReq) returns (EmailVerifyCodeRsp);
 
+    // 个人信息获取
     rpc GetUserInfo(GetUserInfoReq) returns (GetUserInfoRsp);
+    // 多用户个人信息获取
     rpc GetMultiUserInfo(GetMultiUserInfoReq) returns (GetMultiUserInfoRsp);
 
+    // 用户头像修改
     rpc SetUserAvatar(SetUserAvatarReq) returns (SetUserAvatarRsp);
+    // 用户昵称修改
     rpc SetUserNickname(SetUserNicknameReq) returns (SetUserNicknameRsp);
+    // 用户签名修改
     rpc SetUserDescription(SetUserDescriptionReq) returns (SetUserDescriptionRsp);
 }

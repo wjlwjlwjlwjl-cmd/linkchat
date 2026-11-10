@@ -20,10 +20,9 @@ inline std::string JwtCreate(const std::string& key,
 /// @param secret 密钥
 /// @param token JWT 令牌
 /// @param key 令牌中的键
-/// @param value 令牌中的值
+/// @param value 令牌中的值，输出型参数
 /// @return 是否解析成功
-inline bool JwtParse(const std::string& secret,
-               const std::string& token,
+inline bool JwtParse(const std::string& token,
                const std::string& key,
                std::string& value) {
     try {

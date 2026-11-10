@@ -36,7 +36,9 @@ int main(int argc, char* argv[]){
     SvcDiscovery::Ptr svc_discovery = 
         std::make_shared<SvcDiscovery>(FLAGS_etcd_server_ip, std::move(svc_online), std::move(svc_offline));
 
-    Gateway gateway(options, svc_discovery);
+    redis_factory::RedisConnectionInfo redis_connection_info;    
+
+    Gateway gateway(options, svc_discovery, redis_connection_info);
     gateway.run(FLAGS_gateway_listen_ip.c_str(), FLAGS_gateway_port);
     return 0;
 }

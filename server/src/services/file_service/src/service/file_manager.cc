@@ -11,7 +11,6 @@ FileManager::FileManager(OssDao::Ptr dao){
 /// @return 包含 预签名链接
 ::linkchat::GetSingleFileRsp FileManager::GetSingleFile(const ::linkchat::GetSingleFileReq* req){
     ::linkchat::GetSingleFileRsp resp;
-    resp.set_request_id(req->request_id());
 
     std::string file_id = req->file_id();
     std::string presigned_url = dao_->GetSingleFile(file_id);
@@ -33,7 +32,6 @@ FileManager::FileManager(OssDao::Ptr dao){
 ::linkchat::PutSingleFileRsp FileManager::PutSingleFile(const ::linkchat::PutSingleFileReq* req){
     ::linkchat::PutSingleFileRsp rsp;
 
-    rsp.set_request_id(req->request_id());
 
     std::string file_content = req->file_data().file_content();
     std::string file_name = req->file_data().file_name();

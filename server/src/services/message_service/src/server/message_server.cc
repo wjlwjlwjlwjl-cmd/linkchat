@@ -22,7 +22,6 @@ void MessageServer::GetHistoryMsg(::google::protobuf::RpcController* controller,
     brpc::ClosureGuard guard(done);
     manager_->GetHistoryMsg(*request, *response);
     response->set_success(true);
-    response->set_request_id(request->request_id());
 }
 
 void MessageServer::GetRecentMsg(::google::protobuf::RpcController* controller,
@@ -32,7 +31,6 @@ void MessageServer::GetRecentMsg(::google::protobuf::RpcController* controller,
     brpc::ClosureGuard guard(done);
     manager_->GetRecentMsg(*request, *response);
     response->set_success(true);
-    response->set_request_id(request->request_id());
 }
 
 void MessageServer::MsgSearch(::google::protobuf::RpcController* controller,
@@ -41,14 +39,12 @@ void MessageServer::MsgSearch(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     brpc::ClosureGuard guard(done);
     if(request->chat_session_id().empty() || request->search_key().empty()){
-        response->set_request_id(request->request_id());
         response->set_success(false);
         response->set_errmsg("chat_session_id and search_key must not be empty");
         return;
     }
     manager_->MsgSearch(*request, *response);
     response->set_success(true);
-    response->set_request_id(request->request_id());
 }
 
 bool MessageServer::OnMessage(const char* message, int size){

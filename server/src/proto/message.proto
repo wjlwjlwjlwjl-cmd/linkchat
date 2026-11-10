@@ -6,53 +6,48 @@ option cc_generic_services = true;
 
 // 获取最近时间段消息
 message GetHistoryMsgReq {
-    string request_id = 1;
-    string chat_session_id = 2;
-    int64 start_time = 3; // 以分钟为单位的时间戳
-    int64 over_time = 4; // 以分钟为单位的时间戳
-    optional string user_id = 5;
-    optional string session_id = 6; //会话id，鉴权
+    string chat_session_id = 1;
+    int64 start_time = 2; // 以分钟为单位的时间戳
+    int64 over_time = 3; // 以分钟为单位的时间戳
+    optional string user_id = 4;
 }
 message GetHistoryMsgRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    repeated MessageInfo msg_list = 4;
+    bool success = 1;
+    string errmsg = 2; 
+    repeated MessageInfo msg_list = 3;
 }
 
 // 获取最近 N 条消息
 message GetRecentMsgReq {
-    string request_id = 1;
-    string chat_session_id = 2;
-    int64 msg_count = 3;
-    optional int64 cur_time = 4;//用于扩展获取指定时间前的n条消息，单位为分钟
-    optional string user_id = 5;
-    optional string session_id = 6; //会话id，鉴权
+    string chat_session_id = 1;
+    int64 msg_count = 2;
+    optional int64 cur_time = 3;//用于扩展获取指定时间前的n条消息，单位为分钟
+    optional string user_id = 4;
 }
 message GetRecentMsgRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    repeated MessageInfo msg_list = 4;
+    bool success = 1;
+    string errmsg = 2; 
+    repeated MessageInfo msg_list = 3;
 }
 
 // 搜索消息（ES）
 message MsgSearchReq {
-    string request_id = 1;
-    optional string user_id = 2;
-    optional string session_id = 3;
-    string chat_session_id = 4;
-    string search_key = 5;
+    optional string user_id = 1;
+    string chat_session_id = 2;
+    string search_key = 3;
 }
 message MsgSearchRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    repeated MessageInfo msg_list = 4;
+    bool success = 1;
+    string errmsg = 2; 
+    repeated MessageInfo msg_list = 3;
 }
 
+// 消息存储服务接口
 service MsgStorageService {
+    // 获取最近时间段消息
     rpc GetHistoryMsg(GetHistoryMsgReq) returns (GetHistoryMsgRsp);
+    // 获取最近 N 条消息
     rpc GetRecentMsg(GetRecentMsgReq) returns (GetRecentMsgRsp);
+    // 搜索消息（ES）
     rpc MsgSearch(MsgSearchReq) returns (MsgSearchRsp);
 }

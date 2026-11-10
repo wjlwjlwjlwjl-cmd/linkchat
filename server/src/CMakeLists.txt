@@ -9,7 +9,6 @@ add_subdirectory(proto)
 add_subdirectory(adapters)
 add_subdirectory(util)
 add_subdirectory(constants)
-add_subdirectory(test/user)
 
 add_subdirectory(services/file_service)
 add_subdirectory(services/message_service)
