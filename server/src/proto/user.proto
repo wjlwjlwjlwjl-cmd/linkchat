@@ -50,15 +50,17 @@ message EmailLoginRsp {
 //客户端传递的时候只需要填充session_id即可
 //其他个人/好友信息的获取在好友操作中完成
 message GetUserInfoReq {
-    optional string user_id = 1;    // 引入 jwt token 后，这里采取将 user_id 放到 jwt token 中
-}
+    string token = 1; //是谁在获取
+    string user_id = 2; // 要获取谁的
+} 
 message GetUserInfoRsp {
     bool success = 1;
     string errmsg = 2; 
     UserInfo user_info = 3;
-}
+} 
 message GetMultiUserInfoReq {
-    repeated string users_id = 1;
+    string token  = 1; // 是谁在获取，要获取哪些人的
+    repeated string users_id = 2;
 }
 message GetMultiUserInfoRsp {
     bool success = 1;

@@ -1,4 +1,7 @@
 // 现在用户信息，统一存放在 jwt token 中，jwt token 首先用于鉴权，后续用于传递处理用户信息
+// Get 方法参数，直接获取即可
+// Post 方法参数，如果没有文件操作，body 为 application/json
+// 如果有文件操作，body 为 multipart/form-data
 
 #include <brpc/controller.h>
 #include <httplib.h>
@@ -16,13 +19,18 @@
 #include "jwt_util.h"
 #include "redis/redis_factory.h"
 #include "redis_constants.h"
+#include "json/json_codec.h"
 
 class Gateway{
 public:
     //FileService
     #define GET_SINGLE_FILE "/get_single_file"
 
+    // UserService
     #define GET_EMAIL_VERIFY_CODE "/get_email_verify_code"
+    #define REGISTER "/register"
+    #define NICKNAME_LOGIN "/nickname_login"
+    #define EMAIL_LOGIN "/email_login"
 
     Gateway(std::shared_ptr<::brpc::ChannelOptions> options, SvcDiscovery::Ptr svc_discovery, 
         redis_factory::RedisConnectionInfo& redis_connection_info){
@@ -33,11 +41,21 @@ public:
         // 拉取服务信息到本地
         svc_discovery_->Watch();
 
+        ///////////////////////////////
+        // FileService
+        ///////////////////////////////
         http_server_.Get(GET_SINGLE_FILE, 
             std::bind(&Gateway::GetSingleFile, this, std::placeholders::_1, std::placeholders::_2));
 
+        ///////////////////////////////
+        // UserService
+        ///////////////////////////////
         http_server_.Get(GET_EMAIL_VERIFY_CODE, 
             std::bind(&Gateway::GetEmailVerifyCode, this, std::placeholders::_1, std::placeholders::_2));
+        http_server_.Post(REGISTER, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                Register(req, res);
+        });
     }
 
     void run(const char* listen_ip, int port){
@@ -70,6 +88,9 @@ private:
         return true;
     }
 
+    ///////////////////////////////
+    // FileService
+    ///////////////////////////////
     void GetSingleFile(const httplib::Request& req, httplib::Response& res){
         if(!verifyToken(req.get_header_value("Authorization"))){
             res.status = 401;
@@ -117,6 +138,9 @@ private:
         res.set_content(content, "application/json");
     }
 
+    ///////////////////////////////
+    // UserService
+    ///////////////////////////////
     void Register(const ::httplib::Request& req, ::httplib::Response& res){
         // 与 brpc 服务器建立连接
         std::string ip;
@@ -133,6 +157,31 @@ private:
         }
         ::linkchat::UserService_Stub stub(channel.get());
 
+        ::linkchat::UserRegisterReq request;
+        ::linkchat::UserRegisterRsp response;
+        std::string body = req.body;
+        auto status = ::google::protobuf::util::JsonStringToMessage(body, &request);
+        if(!status.ok()){
+            res.status = 400;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        stub.UserRegister(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize register response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
     }
 
     void GetEmailVerifyCode(const httplib::Request& req, httplib::Response& res){
@@ -168,6 +217,92 @@ private:
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){
             LOG_ERROR("Failed to serialize email verify code response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void NicknameLogin(const ::httplib::Request& req, ::httplib::Response& res){
+        // 与 brpc 服务器建立连接
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+        ::linkchat::UserService_Stub stub(channel.get());
+        
+        ::linkchat::NicknameLoginReq request;
+        ::linkchat::NicknameLoginRsp response;
+        std::string body = req.body;
+        auto status = ::google::protobuf::util::JsonStringToMessage(body, &request);
+        if(!status.ok()){
+            res.status = 400;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        stub.NicknameLogin(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize nickname login response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void EmailLogin(const ::httplib::Request& req, ::httplib::Response& res){
+        // 与 brpc 服务器建立连接
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+        ::linkchat::UserService_Stub stub(channel.get());
+        
+        ::linkchat::EmailLoginReq request;
+        ::linkchat::EmailLoginRsp response;
+        std::string body = req.body;
+        auto status = ::google::protobuf::util::JsonStringToMessage(body, &request);
+        if(!status.ok()){
+            res.status = 400;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        stub.EmailLogin(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize email login response");
             res.status = 500;
             return;
         }
