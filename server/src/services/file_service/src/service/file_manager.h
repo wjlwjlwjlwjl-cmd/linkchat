@@ -11,12 +11,12 @@ public:
     /// @brief 根据 file_id 到获取预签名连接
     /// @param req 
     /// @return 包含 预签名链接
-    ::linkchat::GetSingleFileRsp GetSingleFile(const ::linkchat::GetSingleFileReq* req);
+    ::linkchat::GetSingleFileRsp GetSingleFile(const std::string& file_id);
 
     /// @brief 上传单个文件
     /// @param req 包含文件内容
     /// @return 包含 file_id
-    linkchat::PutSingleFileRsp PutSingleFile(const ::linkchat::PutSingleFileReq* req);
+    linkchat::PutSingleFileRsp PutSingleFile(const std::string& file_name, long file_size, const std::string& file_content);
 private:
     OssDao::Ptr dao_;
 };

@@ -9,7 +9,7 @@ message GetHistoryMsgReq {
     string chat_session_id = 1;
     int64 start_time = 2; // 以分钟为单位的时间戳
     int64 over_time = 3; // 以分钟为单位的时间戳
-    optional string user_id = 4;
+    string token = 4;
 }
 message GetHistoryMsgRsp {
     bool success = 1;
@@ -22,7 +22,7 @@ message GetRecentMsgReq {
     string chat_session_id = 1;
     int64 msg_count = 2;
     optional int64 cur_time = 3;//用于扩展获取指定时间前的n条消息，单位为分钟
-    optional string user_id = 4;
+    string token = 4;
 }
 message GetRecentMsgRsp {
     bool success = 1;
@@ -32,7 +32,7 @@ message GetRecentMsgRsp {
 
 // 搜索消息（ES）
 message MsgSearchReq {
-    optional string user_id = 1;
+    string token = 1;
     string chat_session_id = 2;
     string search_key = 3;
 }

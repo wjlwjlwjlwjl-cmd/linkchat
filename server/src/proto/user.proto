@@ -23,7 +23,7 @@ message NicknameLoginReq {
 message NicknameLoginRsp {
     bool success = 1;
     string errmsg = 2;
-    string jwt_token = 3;
+    string token = 3;
 }
 
 //邮箱验证码获取（验证码ttl放在服务层）
@@ -43,7 +43,7 @@ message EmailLoginReq {
 message EmailLoginRsp {
     bool success = 1;
     string errmsg = 2; 
-    string jwt_token = 3; // 含有用户身份信息的鉴权字符串
+    string token = 3; // 含有用户身份信息的鉴权字符串
 }
 
 //个人信息获取-这个只用于获取当前登录用户的信息
@@ -68,7 +68,7 @@ message GetMultiUserInfoRsp {
 //----------------------------
 //用户头像修改 
 message SetUserAvatarReq {
-    optional string user_id = 1;
+    string token = 1;
     bytes avatar = 2;
 }
 message SetUserAvatarRsp {
@@ -78,7 +78,7 @@ message SetUserAvatarRsp {
 
 //用户昵称修改 
 message SetUserNicknameReq {
-    optional string user_id = 1;
+    string token = 1;
     string nickname = 2;
 }
 message SetUserNicknameRsp {
@@ -88,7 +88,7 @@ message SetUserNicknameRsp {
 
 //用户签名修改 
 message SetUserDescriptionReq {
-    optional string user_id = 1;
+    string token = 1;
     string description = 2;
 }
 message SetUserDescriptionRsp {

@@ -61,6 +61,6 @@ message FileDownloadData {
 
 message FileUploadData {
     string file_name = 1; //文件名称
-    int64 file_size = 2; //文件大小
+    int64 file_size = 2; //文件大小，起到校验作用，和文件内容的实际大小做比较，不相等则直接丢弃
     bytes file_content = 3; //文件数据
 }

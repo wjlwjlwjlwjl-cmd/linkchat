@@ -2,6 +2,7 @@
 #include "etcd/discover/service_discovery.h"
 #include "message.pb.h"
 #include "rpc/channels.h"
+#include "jwt_util.h"
 
 MessageManager::MessageManager(
     const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
@@ -87,23 +88,42 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
 
 void MessageManager::GetHistoryMsg(const ::linkchat::GetHistoryMsgReq& request, ::linkchat::GetHistoryMsgRsp& rsp){
     using namespace linkchat;
+    std::string token = request.token();
+    std::string user_id;
+    if(!JwtParse(token, "user_id", user_id)){
+        return;
+    }
+    if(user_id == "") return;
+
     auto msgs = dao_->GetHistroyMsg(request.chat_session_id(), request.start_time(),
-        request.over_time(), request.user_id());
+        request.over_time(), user_id);
     rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
 }
 
 void MessageManager::GetRecentMsg(const ::linkchat::GetRecentMsgReq& request, ::linkchat::GetRecentMsgRsp& rsp){
     using namespace linkchat;
+    std::string token = request.token();
+    std::string user_id;
+    if(!JwtParse(token, "user_id", user_id)){
+        return;
+    }
+    if(user_id == "") return;
     auto msgs = dao_->GetRecentMsg(request.chat_session_id(), request.msg_count(),
-        request.cur_time(), request.user_id());
+        request.cur_time(), user_id);
     rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
 }
 
 void MessageManager::MsgSearch(const ::linkchat::MsgSearchReq& request, ::linkchat::MsgSearchRsp& rsp){
     using namespace linkchat;
+    std::string token = request.token();
+    std::string user_id;
+    if(!JwtParse(token, "user_id", user_id)){
+        return;
+    }
+    if(user_id == "") return;
     if(request.chat_session_id().empty() || request.search_key().empty()){
         return;
     }
-    auto msgs = dao_->MsgSearch(request.chat_session_id(), request.user_id(), request.search_key());
+    auto msgs = dao_->MsgSearch(request.chat_session_id(), user_id, request.search_key());
     rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
 }

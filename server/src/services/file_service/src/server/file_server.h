@@ -19,9 +19,19 @@ public:
                        ::linkchat::GetSingleFileRsp* response,
                        ::google::protobuf::Closure* done) override;
 
+    void GetMultiFile(::google::protobuf::RpcController* controller,
+                       const ::linkchat::GetMultiFileReq* request,
+                       ::linkchat::GetMultiFileRsp* response,
+                       ::google::protobuf::Closure* done) override;
+
     void PutSingleFile(::google::protobuf::RpcController* controller,
                        const ::linkchat::PutSingleFileReq* request,
                        ::linkchat::PutSingleFileRsp* response,
+                       ::google::protobuf::Closure* done) override;
+
+    void PutMultiFile(::google::protobuf::RpcController* controller,
+                       const ::linkchat::PutMultiFileReq* request,
+                       ::linkchat::PutMultiFileRsp* response,
                        ::google::protobuf::Closure* done) override;
 private:
     FileManager::Ptr service_;
