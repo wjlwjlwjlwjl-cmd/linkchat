@@ -27,17 +27,47 @@ public:
     #define GET_SINGLE_FILE "/get_single_file"
 
     // UserService
-    #define GET_EMAIL_VERIFY_CODE "/get_email_verify_code"
+    #define GET_EMAIL_VERIFY_CODE "/login/mail_verify_code"
     #define REGISTER "/register"
-    #define NICKNAME_LOGIN "/nickname_login"
-    #define EMAIL_LOGIN "/email_login"
-    #define GET_USER_INFO "/get_user_info"
+    #define NICKNAME_LOGIN "/login/nickname"
+    #define EMAIL_LOGIN "/login/email"
+    #define GET_USER_INFO "/user/info"
+    #define GET_MULTI_USER_INFO "/user/multi_info"
 
     Gateway(std::shared_ptr<::brpc::ChannelOptions> options, SvcDiscovery::Ptr svc_discovery, 
         redis_factory::RedisConnectionInfo& redis_connection_info){
         options_ = options;
         svc_discovery_ = svc_discovery;
         redis_template_ = redis_factory::RedisFactory::Create(redis_connection_info);
+
+        // 设置网关统一身份验证
+        http_server_.set_pre_routing_handler([this](const ::httplib::Request& req, ::httplib::Response& res){
+            // 处理跨域时浏览器的预检请求
+            if (req.method == "OPTIONS") {
+                res.set_header("Access-Control-Allow-Origin", "*"); 
+                res.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                res.status = 204;
+                return ::httplib::Server::HandlerResponse::Handled; // 直接结束
+            }
+
+            // 白名单直接放行
+            if(white_lists.find(req.path) != white_lists.end()){
+                return ::httplib::Server::HandlerResponse::Unhandled;
+            }
+
+            // 验证登录态
+            std::string token = req.get_header_value("Authorization");
+            if(token.empty()){
+                res.status = 401;
+                return ::httplib::Server::HandlerResponse::Handled;
+            }
+            if(!VerifyToken(token)){
+                res.status = 401;
+                return ::httplib::Server::HandlerResponse::Handled;
+            }
+            return ::httplib::Server::HandlerResponse::Unhandled;
+        });
 
         // 拉取服务信息到本地
         svc_discovery_->Watch();
@@ -74,6 +104,14 @@ public:
         http_server_.listen(listen_ip, port);
     }
 private:
+    // 白名单接口不校验token
+    const std::set<std::string> white_lists{
+        GET_EMAIL_VERIFY_CODE,
+        REGISTER,
+        NICKNAME_LOGIN,
+        EMAIL_LOGIN,
+    };
+
     httplib::Server http_server_;
     std::shared_ptr<sw::redis::Redis> redis_template_;
 
@@ -81,7 +119,7 @@ private:
     std::shared_ptr<::brpc::ChannelOptions> options_;
     SvcDiscovery::Ptr svc_discovery_;
 
-    bool verifyToken(const std::string& token){
+    bool VerifyToken(const std::string& token){
         // 这里检查 jwt token 能否成功解析，能则认为jwt合法，如果不合法，直接 401 Unauthorized
         if(token.empty()) return false;
         std::string user_id;
@@ -103,10 +141,6 @@ private:
     // FileService
     ///////////////////////////////
     void GetSingleFile(const httplib::Request& req, httplib::Response& res){
-        if(!verifyToken(req.get_header_value("Authorization"))){
-            res.status = 401;
-            return;
-        }
         std::string file_id = req.get_param_value("file_id");
         if(file_id.empty()){
             res.status = 400;
@@ -360,5 +394,25 @@ private:
 
         res.status = 200;
         res.set_content(content, "application/json");
+    }
+
+    void GetMultiUserInfo(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::UserService_Stub stub(channel.get());
+        ::linkchat::GetUserInfoReq request;
+        ::linkchat::GetUserInfoRsp response;
+        
     }
 };
