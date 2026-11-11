@@ -53,7 +53,7 @@ void UserServer::GetUserInfo(::google::protobuf::RpcController* controller,
                     ::linkchat::GetUserInfoRsp* response,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
-    auto info = user_manager_->GetUserInfo(request->user_id()); // 获取 user_id 的 
+    auto info = user_manager_->GetUserInfo(request->token()); // 获取 user_id 的 
     response->set_success(true);
     response->set_errmsg("");
 

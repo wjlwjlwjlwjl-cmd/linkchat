@@ -46,20 +46,40 @@ CommonDTO UserManager::Register(const std::string &nickname, const std::string &
 
 LoginDTO UserManager::NicknameLogin(const std::string &nickname, const std::string &password){
     std::string jwt_token;
-
     auto user = dao_->GetUserByNickname(nickname);
     std::string user_id = user.user_id;
     if(user_id.empty()){
         return {false, "User not found", ""};
     }
+    std::string token_key = ::redis_constants::token_key + user_id;
+    jwt_token = redis_template_->get(token_key).value_or("");
+    if(jwt_token != ""){
+        return {true, "", jwt_token}; //已经登陆，不需要签发新的 token
+    }
 
     jwt_token = JwtCreate("user_id", user_id);
+    redis_template_->set(token_key, jwt_token, std::chrono::milliseconds(redis_constants::token_expire));
 
     return LoginDTO {true, "", jwt_token};
 }
 
 LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &verify_code){
+    // 先查看是否已经登陆
+    auto user = dao_->GetUserByEmail(email);
+    std::string user_id = user.user_id;
+    if(user_id.empty()){
+        return {false, "User not found", ""};
+    }
+    std::string token_key = redis_constants::token_key + user_id;
+    auto stored_token = redis_template_->get(token_key);
     auto verify_code_key = redis_constants::email_verify_code_key + email;
+    if(stored_token.has_value()){
+        //已经登陆，不需要签发新的 token，并且验证码也给予删除
+        redis_template_->del(verify_code_key);
+        return {true, "", stored_token.value()};
+    }
+
+    // 验证验证码
     auto stored_code = redis_template_->get(verify_code_key);
     if(!stored_code.has_value() || stored_code.value() != verify_code){
         return {false, "Verify code is incorrect", ""};
@@ -67,13 +87,10 @@ LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &ve
     redis_template_->del(verify_code_key);
 
     std::string jwt_token;
-    auto user = dao_->GetUserByEmail(email);
-    std::string user_id = user.user_id;
-    if(user_id.empty()){
-        return {false, "User not found", ""};
-    }
 
     jwt_token = JwtCreate("user_id", user_id);
+    redis_template_->set(token_key, jwt_token, std::chrono::milliseconds(redis_constants::token_expire));
+
     return {true, "", jwt_token};
 }
 
@@ -102,7 +119,11 @@ CommonDTO UserManager::SendVerifyCode(const std::string &email){
     return {true, ""};
 }
 
-UserDTO UserManager::GetUserInfo(const std::string &user_id){
+UserDTO UserManager::GetUserInfo(const std::string &token){
+    std::string user_id;
+    if(!JwtParse(token, "user_id", user_id) || user_id.empty()){
+        return {"", "", "", "", "", "", false};
+    }
     return dao_->GetUserById(user_id);
 }
 

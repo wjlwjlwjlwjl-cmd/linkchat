@@ -51,7 +51,6 @@ message EmailLoginRsp {
 //其他个人/好友信息的获取在好友操作中完成
 message GetUserInfoReq {
     string token = 1; //是谁在获取
-    string user_id = 2; // 要获取谁的
 } 
 message GetUserInfoRsp {
     bool success = 1;
@@ -112,7 +111,7 @@ service UserService {
     // 验证码ttl放在服务层
     rpc GetEmailVerifyCode(EmailVerifyCodeReq) returns (EmailVerifyCodeRsp);
 
-    // 个人信息获取
+    // 个人信息获取（根据 jwttoken 获取）
     rpc GetUserInfo(GetUserInfoReq) returns (GetUserInfoRsp);
     // 多用户个人信息获取
     rpc GetMultiUserInfo(GetMultiUserInfoReq) returns (GetMultiUserInfoRsp);

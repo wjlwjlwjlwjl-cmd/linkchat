@@ -31,6 +31,7 @@ public:
     #define REGISTER "/register"
     #define NICKNAME_LOGIN "/nickname_login"
     #define EMAIL_LOGIN "/email_login"
+    #define GET_USER_INFO "/get_user_info"
 
     Gateway(std::shared_ptr<::brpc::ChannelOptions> options, SvcDiscovery::Ptr svc_discovery, 
         redis_factory::RedisConnectionInfo& redis_connection_info){
@@ -55,15 +56,17 @@ public:
         http_server_.Post(REGISTER, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 Register(req, res);
+            });
         http_server_.Post(NICKNAME_LOGIN, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 NicknameLogin(req, res);
             });
-        });
         http_server_.Post(EMAIL_LOGIN, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 EmailLogin(req, res);
-        });
+            });
+        http_server_.Get(GET_USER_INFO, 
+            std::bind(&Gateway::GetUserInfo, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     void run(const char* listen_ip, int port){
@@ -277,7 +280,6 @@ private:
     }
 
     void EmailLogin(const ::httplib::Request& req, ::httplib::Response& res){
-        // 与 brpc 服务器建立连接
         std::string ip;
         auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
         if(ip == ""){
@@ -311,6 +313,47 @@ private:
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){
             LOG_ERROR("Failed to serialize email login response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void GetUserInfo(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::UserService_Stub stub(channel.get());
+        ::linkchat::GetUserInfoReq request;
+        ::linkchat::GetUserInfoRsp response;
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        request.set_token(token);
+        ::brpc::Controller cntl;
+        stub.GetUserInfo(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize get info response");
             res.status = 500;
             return;
         }
