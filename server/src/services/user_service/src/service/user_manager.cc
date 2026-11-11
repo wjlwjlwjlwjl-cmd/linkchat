@@ -119,11 +119,7 @@ CommonDTO UserManager::SendVerifyCode(const std::string &email){
     return {true, ""};
 }
 
-UserDTO UserManager::GetUserInfo(const std::string &token){
-    std::string user_id;
-    if(!JwtParse(token, "user_id", user_id) || user_id.empty()){
-        return {"", "", "", "", "", "", false};
-    }
+UserDTO UserManager::GetUserInfo(const std::string &user_id){
     return dao_->GetUserById(user_id);
 }
 
@@ -140,8 +136,9 @@ CommonDTO UserManager::SetUserAvatar(const std::string& user_id, const std::stri
 
     ::linkchat::PutSingleFileReq req;
 
+    // 这里后端直接存二进制数据，不需要携带jpg/png等后缀
     std::string file_name = service_prefix::user_avatar_prefix + user_id;
-    std::string file_content = "";
+    std::string file_content = content;
     req.mutable_file_data()->set_file_name(file_name);
     req.mutable_file_data()->set_file_content(file_content);
 
@@ -153,9 +150,17 @@ CommonDTO UserManager::SetUserAvatar(const std::string& user_id, const std::stri
         LOG_ERROR("Failed to put file");
         return {false, "Failed to put file"};
     }
+    if(!response->success()){
+        LOG_ERROR("Failed to put file, errmsg: {}", response->errmsg());
+        return {false, response->errmsg()};
+    }
     std::string file_id = response->file_info().file_id();
-    dao_->SetUserAvatar(user_id, file_id);
-    return {true, ""};
+    std::string ret = dao_->SetUserAvatar(user_id, file_id);
+    std::cout << "file_id" << file_id << std::endl;
+    if(ret.empty()){
+        return {true, ""};
+    }
+    return {false, ret};
 }
 
 CommonDTO UserManager::SetUserDescription(const std::string& user_id, const std::string& description){

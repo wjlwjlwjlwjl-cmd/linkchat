@@ -116,6 +116,7 @@ UserDTO UserDao::GetUserByNickname(const std::string &nickname){
 }
 
 std::string UserDao::SetUserAvatar(const std::string& user_id, const std::string& file_id){
+    // 这里利用 odb 的自动脏检查机制，修改过的会标记为脏，事务提交时生成 UPDATE 并自动更新
     try{
         auto transaction = MysqlClient::Transaction(db_);
 
@@ -123,7 +124,7 @@ std::string UserDao::SetUserAvatar(const std::string& user_id, const std::string
         db_->query_one<::linkchat::User>(odb::query<::linkchat::User>::user_id == user_id, user);
 
         user.set_avatar_id(file_id);
-        db_->persist(user);
+        db_->update(user);
 
         MysqlClient::Commit(transaction);
     }
@@ -145,7 +146,7 @@ std::string UserDao::SetUserNickname(const std::string& user_id, const std::stri
         db_->query_one<::linkchat::User>(odb::query<::linkchat::User>::user_id == user_id, user);
 
         user.set_nickname(nickname);
-        db_->persist(user);
+        db_->update(user);
 
         MysqlClient::Commit(transaction);
     }
@@ -167,7 +168,7 @@ std::string UserDao::SetUserDescription(const std::string& user_id, const std::s
         db_->query_one<::linkchat::User>(odb::query<::linkchat::User>::user_id == user_id, user);
 
         user.set_description(description);
-        db_->persist(user);
+        db_->update(user);
 
         MysqlClient::Commit(transaction);
     }

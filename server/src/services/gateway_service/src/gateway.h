@@ -24,7 +24,7 @@
 class Gateway{
 public:
     //FileService
-    #define GET_SINGLE_FILE "/get_single_file"
+    #define GET_SINGLE_FILE "/file/get_single"
 
     // UserService
     #define GET_EMAIL_VERIFY_CODE "/login/mail_verify_code"
@@ -33,6 +33,9 @@ public:
     #define EMAIL_LOGIN "/login/email"
     #define GET_USER_INFO "/user/info"
     #define GET_MULTI_USER_INFO "/user/multi_info"
+    #define SET_USER_AVATAR "/user/avatar/set"
+    #define SET_USER_DESCRIPTION "/user/description/set"
+    #define SET_USER_NICKNAME "/user/nickname/set"
 
     Gateway(std::shared_ptr<::brpc::ChannelOptions> options, SvcDiscovery::Ptr svc_discovery, 
         redis_factory::RedisConnectionInfo& redis_connection_info){
@@ -97,6 +100,22 @@ public:
             });
         http_server_.Get(GET_USER_INFO, 
             std::bind(&Gateway::GetUserInfo, this, std::placeholders::_1, std::placeholders::_2));
+        http_server_.Get(GET_MULTI_USER_INFO, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                GetMultiUserInfo(req, res);
+            });
+        http_server_.Post(SET_USER_AVATAR, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                SetUserAvatar(req, res);
+            });
+        http_server_.Post(SET_USER_DESCRIPTION, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                SetUserDescription(req, res);
+            });
+        http_server_.Post(SET_USER_NICKNAME, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                SetUserNickname(req, res);
+            });
     }
 
     void run(const char* listen_ip, int port){
@@ -164,7 +183,7 @@ private:
 
         ::linkchat::GetSingleFileReq request;
         ::linkchat::GetSingleFileRsp response;
-        request.set_file_id("file_id");
+        request.set_file_id(file_id);
         stub.GetSingleFile(&cntl, &request, &response, nullptr);
 
         if (cntl.Failed()){
@@ -411,8 +430,176 @@ private:
         }
 
         ::linkchat::UserService_Stub stub(channel.get());
-        ::linkchat::GetUserInfoReq request;
-        ::linkchat::GetUserInfoRsp response;
-        
+        ::linkchat::GetMultiUserInfoReq request;
+        ::linkchat::GetMultiUserInfoRsp response;
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            std::cout << "token empty" << std::endl;
+            res.status = 401;
+            return;
+        }
+        auto ids = req.params.equal_range("users_id");
+        for(auto it = ids.first; it != ids.second; ++it){
+            request.add_users_id(it->second);
+        }
+        if(request.users_id_size() == 0){
+            res.status = 400;
+            return;
+        }
+        request.set_token(token);
+        ::brpc::Controller cntl;
+        stub.GetMultiUserInfo(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void SetUserAvatar(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::UserService_Stub stub(channel.get());
+        ::linkchat::SetUserAvatarReq request;
+        ::linkchat::SetUserAvatarRsp response;
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        request.set_token(token);
+        if(!req.has_file("avatar")){
+            res.status = 400;
+            return;
+        }
+        const auto& avatar_content = req.get_file_value("avatar");
+        std::string avatar = avatar_content.content;
+        request.set_avatar(avatar);
+        ::brpc::Controller cntl;
+        stub.SetUserAvatar(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void SetUserDescription(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::UserService_Stub stub(channel.get());
+        ::linkchat::SetUserDescriptionReq request;
+        ::linkchat::SetUserDescriptionRsp response;
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        request.set_token(token);
+        std::string description = req.get_param_value("description");
+        if(description.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_description(description);
+        ::brpc::Controller cntl;
+        stub.SetUserDescription(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void SetUserNickname(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::UserService_Stub stub(channel.get());
+        ::linkchat::SetUserNicknameReq request;
+        ::linkchat::SetUserNicknameRsp response;
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        request.set_token(token);
+        std::string nickname = req.get_param_value("nickname");
+        if(nickname.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_nickname(nickname);
+        ::brpc::Controller cntl;
+        stub.SetUserNickname(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
     }
 };

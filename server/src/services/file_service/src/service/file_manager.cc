@@ -34,18 +34,11 @@ FileManager::FileManager(OssDao::Ptr dao){
 /// @brief 上传单个文件
 /// @param req 包含文件内容
 /// @return 包含 file_id
-::linkchat::PutSingleFileRsp FileManager::PutSingleFile(const std::string& file_name, 
-    long file_size, const std::string& file_content){
+::linkchat::PutSingleFileRsp FileManager::PutSingleFile(const std::string& file_name, const std::string& file_content){
     ::linkchat::PutSingleFileRsp rsp;
     if(file_name == ""){
         rsp.set_success(false);
         rsp.set_errmsg("file_name is empty");
-        return rsp;
-    }
-
-    if(file_size != file_content.size()){
-        rsp.set_success(false);
-        rsp.set_errmsg("file_size is not equal to file_content size");
         return rsp;
     }
 

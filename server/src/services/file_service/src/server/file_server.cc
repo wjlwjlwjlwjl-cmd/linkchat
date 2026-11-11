@@ -48,15 +48,13 @@ void FileServer::PutSingleFile(::google::protobuf::RpcController* controller,
                     ::google::protobuf::Closure* done){
     brpc::ClosureGuard closure_guard(done);
     std::string file_name = request->file_data().file_name();
-    long file_size = request->file_data().file_size();
     std::string file_content = request->file_data().file_content();
-    auto ret = service_->PutSingleFile(file_name, file_size, file_content);
+    auto ret = service_->PutSingleFile(file_name, file_content);
 
     response->set_success(ret.success());
     response->set_errmsg(ret.errmsg());
     response->mutable_file_info()->set_file_id(ret.file_info().file_id());
     response->mutable_file_info()->set_file_name(request->file_data().file_name());
-    response->mutable_file_info()->set_file_size(request->file_data().file_size());
 }
 
 void FileServer::PutMultiFile(::google::protobuf::RpcController* controller,
@@ -67,9 +65,8 @@ void FileServer::PutMultiFile(::google::protobuf::RpcController* controller,
     std::string errmsg;
     for(auto& file_data: request->file_data()){
         std::string file_name = file_data.file_name();
-        long file_size = file_data.file_size();
         std::string file_content = file_data.file_content();
-        auto ret = service_->PutSingleFile(file_name, file_size, file_content);
+        auto ret = service_->PutSingleFile(file_name, file_content);
         if(!ret.success()){
             errmsg = ret.errmsg(); //遇到第一个上传失败的停下
             break;

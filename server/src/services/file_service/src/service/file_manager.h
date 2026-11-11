@@ -16,7 +16,7 @@ public:
     /// @brief 上传单个文件
     /// @param req 包含文件内容
     /// @return 包含 file_id
-    linkchat::PutSingleFileRsp PutSingleFile(const std::string& file_name, long file_size, const std::string& file_content);
+    linkchat::PutSingleFileRsp PutSingleFile(const std::string& file_name, const std::string& file_content);
 private:
     OssDao::Ptr dao_;
 };
