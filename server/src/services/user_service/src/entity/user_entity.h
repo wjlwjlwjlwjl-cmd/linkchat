@@ -71,7 +71,7 @@ namespace linkchat{
 
             odb::nullable<std::string> _description; //用户签名
 
-            #pragma db type("varchar(64)")
+            #pragma db type("varchar(255)")
             odb::nullable<std::string> _password; //用户密码
 
             #pragma db type("varchar(64)") index unique

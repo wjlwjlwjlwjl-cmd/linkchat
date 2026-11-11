@@ -55,6 +55,14 @@ public:
         http_server_.Post(REGISTER, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 Register(req, res);
+        http_server_.Post(NICKNAME_LOGIN, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                NicknameLogin(req, res);
+            });
+        });
+        http_server_.Post(EMAIL_LOGIN, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                EmailLogin(req, res);
         });
     }
 

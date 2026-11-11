@@ -2,6 +2,7 @@
  * compiler for C++.
  */
 
+USE linkchat;
 DROP TABLE IF EXISTS `tb_user`;
 
 CREATE TABLE `tb_user` (
@@ -9,7 +10,7 @@ CREATE TABLE `tb_user` (
   `user_id` varchar(64) NOT NULL,
   `nickname` varchar(64) NULL,
   `description` TEXT NULL,
-  `password` varchar(64) NULL,
+  `password` varchar(255) NULL,
   `email` varchar(64) NULL,
   `avatar_id` varchar(64) NULL)
  ENGINE=InnoDB;

@@ -25,7 +25,7 @@ std::string UserDao::Register(const std::string &nickname, const std::string &pa
         MysqlClient::Commit(transaction);
     } 
     catch(const odb::object_already_persistent& e){
-        return "Nickname already exists";
+        return "user already exists or infomation duplicated";
     }
     catch (const odb::exception &e) {
         LOG_ERROR("Failed to register user {} into db: {}", nickname, e.what());

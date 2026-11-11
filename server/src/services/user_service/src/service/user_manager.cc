@@ -39,6 +39,7 @@ CommonDTO UserManager::Register(const std::string &nickname, const std::string &
     if(!stored_code.has_value() || stored_code.value() != verify_code){
         return {false, "Verify code is incorrect"};
     }
+    redis_template_->del(verify_code_key);
     std::string ret = dao_->Register(nickname, password, email);
     return {ret.empty(), ret};
 }
@@ -63,6 +64,7 @@ LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &ve
     if(!stored_code.has_value() || stored_code.value() != verify_code){
         return {false, "Verify code is incorrect", ""};
     }
+    redis_template_->del(verify_code_key);
 
     std::string jwt_token;
     auto user = dao_->GetUserByEmail(email);
