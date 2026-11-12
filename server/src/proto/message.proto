@@ -44,7 +44,7 @@ message MsgSearchRsp {
 
 // 消息存储服务接口
 service MsgStorageService {
-    // 获取最近时间段消息
+    // 获取最近时间段消息（只获取这个用户的）
     rpc GetHistoryMsg(GetHistoryMsgReq) returns (GetHistoryMsgRsp);
     // 获取最近 N 条消息
     rpc GetRecentMsg(GetRecentMsgReq) returns (GetRecentMsgRsp);

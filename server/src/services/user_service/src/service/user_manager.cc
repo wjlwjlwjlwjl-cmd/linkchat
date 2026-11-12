@@ -58,7 +58,7 @@ LoginDTO UserManager::NicknameLogin(const std::string &nickname, const std::stri
     }
 
     jwt_token = JwtCreate("user_id", user_id);
-    redis_template_->set(token_key, jwt_token, std::chrono::milliseconds(redis_constants::token_expire));
+    redis_template_->set(token_key, jwt_token, std::chrono::seconds(redis_constants::token_expire));
 
     return LoginDTO {true, "", jwt_token};
 }
@@ -89,7 +89,7 @@ LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &ve
     std::string jwt_token;
 
     jwt_token = JwtCreate("user_id", user_id);
-    redis_template_->set(token_key, jwt_token, std::chrono::milliseconds(redis_constants::token_expire));
+    redis_template_->set(token_key, jwt_token, std::chrono::seconds(redis_constants::token_expire));
 
     return {true, "", jwt_token};
 }
@@ -110,7 +110,7 @@ CommonDTO UserManager::SendVerifyCode(const std::string &email){
     }
 
     auto verify_code_key = redis_constants::email_verify_code_key + email;
-    if(!redis_template_->set(verify_code_key, verify_code, std::chrono::milliseconds(redis_constants::email_verify_code_expire))){
+    if(!redis_template_->set(verify_code_key, verify_code, std::chrono::seconds(redis_constants::email_verify_code_expire))){
         LOG_WARN("Failed to set verify code in redis");
         return {false, "Please try again later"};
     }

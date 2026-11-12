@@ -5,6 +5,7 @@
 
 #include <brpc/controller.h>
 #include <httplib.h>
+#include <chrono>
 #include <string>
 #include <brpc/channel.h>
 #include <functional>
@@ -25,6 +26,12 @@ class Gateway{
 public:
     //FileService
     #define GET_SINGLE_FILE "/file/get_single"
+    #define GET_MULTI_FILE "/file/get_multi"
+
+    // MessageService
+    #define GET_HISTORY_MSG "/message/history" // 最近时间段
+    #define GET_RECENT_MSG "/message/recent" // 获取最近 N 条
+    #define MSG_SEARCH "/message/search" // 搜索消息（ES）
 
     // UserService
     #define GET_EMAIL_VERIFY_CODE "/login/mail_verify_code"
@@ -79,7 +86,19 @@ public:
         // FileService
         ///////////////////////////////
         http_server_.Get(GET_SINGLE_FILE, 
-            std::bind(&Gateway::GetSingleFile, this, std::placeholders::_1, std::placeholders::_2));
+            std::bind(&::Gateway::GetSingleFile, this, std::placeholders::_1, std::placeholders::_2));
+        http_server_.Get(GET_MULTI_FILE, 
+            std::bind(&::Gateway::GetMultiFile, this, std::placeholders::_1, std::placeholders::_2));
+
+        ///////////////////////////////
+        /// MessageService
+        ///////////////////////////////
+        http_server_.Get(GET_HISTORY_MSG, 
+            std::bind(&::Gateway::GetHistroyMsg, this, std::placeholders::_1, std::placeholders::_2));
+        http_server_.Get(GET_RECENT_MSG, 
+            std::bind(&::Gateway::GetRecentMsg, this, std::placeholders::_1, std::placeholders::_2));
+        http_server_.Get(MSG_SEARCH, 
+            std::bind(&::Gateway::MsgSearch, this, std::placeholders::_1, std::placeholders::_2));
 
         ///////////////////////////////
         // UserService
@@ -152,7 +171,7 @@ private:
         if(!redis_template_->exists(token_key)){
             return false;
         }
-        redis_template_->expire(token_key, redis_constants::token_expire);
+        redis_template_->expire(token_key, std::chrono::seconds(redis_constants::token_expire));
         return true;
     }
 
@@ -194,6 +213,252 @@ private:
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){
             LOG_ERROR("Failed to serialize get single file response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void GetMultiFile(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::file_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::file_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::file_service, ip);
+            res.status = 502;
+                       return;
+        }
+
+        ::linkchat::GetMultiFileReq request;
+        auto ids = req.params.equal_range("file_ids");
+        for(auto it = ids.first; it != ids.second; ++it){
+            request.add_file_ids(it->second);
+        }
+        if(request.file_ids_size() == 0){
+            res.status = 400;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        ::linkchat::FileService_Stub stub(channel.get());
+        ::linkchat::GetMultiFileRsp response;
+        stub.GetMultiFile(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize get multi file response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    ///////////////////////////////
+    // MessageService
+    ///////////////////////////////
+    void GetHistroyMsg(const ::httplib::Request& req, ::httplib::Response& res){
+        // 与 brpc 服务器建立连接
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::message_storage_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::message_storage_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::message_storage_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::MsgStorageService_Stub stub(channel.get());
+        ::linkchat::GetHistoryMsgReq request;
+        ::linkchat::GetHistoryMsgRsp response;
+
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_token(token);
+        std::string chat_session_id = req.get_param_value("chat_session_id");
+        if(chat_session_id.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_chat_session_id(chat_session_id);
+        std::string start_time_str = req.get_param_value("start_time");
+        if(start_time_str.empty()){
+            res.status = 400;
+            return;
+        }
+        std::string over_time_str = req.get_param_value("over_time");
+        if(over_time_str.empty()){
+            res.status = 400;
+            return;
+        }
+        long start_time, over_time;
+        try{
+            start_time = std::stol(start_time_str);
+            over_time = std::stol(over_time_str);
+        }
+        catch(const std::exception& e){
+            res.status = 400;
+            return;
+        }
+
+        request.set_start_time(start_time);
+        request.set_over_time(over_time);
+
+        ::brpc::Controller cntl;
+        stub.GetHistoryMsg(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize get history msg response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void GetRecentMsg(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::message_storage_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::message_storage_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::message_storage_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        ::linkchat::MsgStorageService_Stub stub(channel.get());
+        ::linkchat::GetRecentMsgReq request;
+        ::linkchat::GetRecentMsgRsp response;
+
+        std::string chat_session_id = req.get_param_value("chat_session_id");
+        if(chat_session_id.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_chat_session_id(chat_session_id);
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_token(token);
+        std::string msg_count_str = req.get_param_value("msg_count");
+        if(msg_count_str.empty()){
+            res.status = 400;
+            return;
+        }
+        int msg_count;
+        try{
+            msg_count = std::stoi(msg_count_str);
+        }
+        catch(const std::exception& e){
+            res.status = 400;
+            return;
+        }
+        request.set_msg_count(msg_count);
+        long cur_time;
+        try{
+            cur_time = std::stol(req.get_param_value("cur_time"));
+        }
+        catch(const std::exception& e){
+            res.status = 400;
+            return;
+        }
+        request.set_cur_time(cur_time);
+
+        stub.GetRecentMsg(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize get recent msg response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void MsgSearch(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::message_storage_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::message_storage_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::message_storage_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        ::linkchat::MsgStorageService_Stub stub(channel.get());
+        ::linkchat::MsgSearchReq request;
+        ::linkchat::MsgSearchRsp response;
+
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_token(token);
+        std::string chat_session_id = req.get_param_value("chat_session_id");
+        if(chat_session_id.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_chat_session_id(chat_session_id);
+        std::string search_key = req.get_param_value("search_key");
+        if(search_key.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_search_key(search_key);
+
+        stub.MsgSearch(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize msg search response");
             res.status = 500;
             return;
         }
