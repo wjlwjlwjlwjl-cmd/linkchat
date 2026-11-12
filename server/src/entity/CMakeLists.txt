@@ -1,9 +1,14 @@
+# 将所有持久化头文件编译到一个静态库 linkchat_entity 中
+
 cmake_minimum_required(VERSION 3.22.1)
-project(linkchat_message_storage_entity)
+project(linkchat_entity)
 
 find_program(ODB_COMPILER odb REQUIRED)
 
-set(persistent_hdr message_entity.h)
+set(persistent_hdr
+    user_entity.h
+    message_entity.h
+)
 
 set(generated_srcs "")
 set(generated_hdrs "")
@@ -43,21 +48,21 @@ foreach(header ${persistent_hdr})
     list(APPEND generated_srcs ${gen_cxx})
 endforeach()
 
-# 确保每次构建都把生成的 sql 同步到实体类所在目录下的 sql/
+# 去执行拷贝
 add_custom_target(
-    ${PROJECT_NAME}_sql ALL
+    linkchat_entity_sql ALL
     DEPENDS ${copied_sqls}
 )
 
 add_library(
-    message_entity STATIC ${generated_srcs}
+    linkchat_entity STATIC ${generated_srcs}
 )
 target_include_directories(
-    message_entity PUBLIC 
+    linkchat_entity PUBLIC 
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(
-    message_entity PUBLIC 
+    linkchat_entity PUBLIC 
     odb odb-boost odb-mysql pthread
 )

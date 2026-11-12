@@ -2,7 +2,7 @@
 #include <odb/core.hxx>
 #include <odb/database.hxx>
 
-#include "entity/user_entity.h"
+#include "user_entity.h"
 #include "user_entity-odb.hxx"
 #include "logging/logger.h"
 #include "odb_mysql/mysql_client.h"

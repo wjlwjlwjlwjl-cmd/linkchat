@@ -3,11 +3,6 @@ project(linkchat_proto)
 
 find_package(Protobuf REQUIRED)
 
-cmake_minimum_required(VERSION 3.22.1)
-project(linkchat_proto)
-
-find_package(Protobuf REQUIRED)
-
 # 全部proto列表，不再按模块，直接全部打成一个静态包
 set(PROTO_FILES
     base.proto
