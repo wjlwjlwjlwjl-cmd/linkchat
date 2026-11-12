@@ -1,32 +1,26 @@
 syntax = "proto3";
-package bite_im;
+package linkchat;
 import "base.proto";
 
 option cc_generic_services = true;
 
 //这个用于和网关进行通信
 message NewMessageReq {
-    string request_id = 1;  //请求ID -- 全链路唯一标识
-    optional string user_id = 2;
-    optional string session_id = 3;//客户端身份识别信息 -- 这就是消息发送者
-    string chat_session_id = 4;  //聊天会话ID -- 标识了当前消息属于哪个会话，应该转发给谁
-    MessageContent message = 5; // 消息内容--消息类型+内容
-}
-message NewMessageRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
+    string token = 1; // 标识发送者身份
+    string chat_session_id = 2; //聊天会话ID -- 标识了当前消息属于哪个会话，应该转发给谁
+    MessageContent message = 3; // 消息内容--消息类型+内容
 }
 
 //这个用于内部的通信,生成完整的消息信息，并获取消息的转发人员列表
 message GetTransmitTargetRsp {
-    string request_id = 1;
-    bool success = 2;
-    string errmsg = 3; 
-    MessageInfo message = 4; // 组织好的消息结构 -- 
-    repeated string target_id_list = 5; //消息的转发目标列表
+    bool success = 1;
+    string errmsg = 2; 
+    MessageInfo message = 3; // 组织好的消息结构，里面包含消息内容，以及这个消息对应的会话 id
+    repeated string target_id_list = 4; //消息的转发目标列表，网关通过 user_id 标识 ws 长连接
 }
 
+// 消息转发服务接口
 service MsgTransmitService {
+    // 获取消息的转发目标列表
     rpc GetTransmitTarget(NewMessageReq) returns (GetTransmitTargetRsp);
 }
