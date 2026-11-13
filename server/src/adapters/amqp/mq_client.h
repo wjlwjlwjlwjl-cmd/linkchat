@@ -40,6 +40,7 @@ inline std::string DeclareSettings::GetDlBindingKey() const {
 /// @brief AMQP Broker 操作封装
 class MqClient {
 public:
+    using Ptr = std::shared_ptr<MqClient>;
     //libev 网络库底层并不是线程安全的，因此对于 channel_ 的任何操作，都需要加锁处理，否则会导致行为混乱
     //同时，队列、交换机、路由关系的回调也都是异步的，所以要等待全部完成后，外层函数再返回。这里采取值捕获和条件变量的方式
     using MessageCallback = std::function<bool(const char* message, int message_size)>;
@@ -87,7 +88,7 @@ inline MqClient::MqClient(const std::string& broker_url)
     , handler_(ev_loop_)
     , connection_(&handler_, AMQP::Address(broker_url))
     , channel_(&connection_)
-    , async_thread_(std::thread([this]() { ev_run(ev_loop_); })) //在异步线程中开启网络时间循环
+    , async_thread_(std::thread([this]() { ev_run(ev_loop_); })) //在异步线程中开启网络事件循环
 {}
 
 inline MqClient::~MqClient() {

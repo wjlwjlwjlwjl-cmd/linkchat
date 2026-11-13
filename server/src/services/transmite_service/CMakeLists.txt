@@ -21,5 +21,6 @@ target_include_directories(
 
 target_link_libraries(
     transmite_bin PUBLIC
-    linkchat_proto adapters util constants
+    linkchat_proto linkchat_entity
+    adapters util constants
 )
