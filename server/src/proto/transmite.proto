@@ -11,6 +11,11 @@ message NewMessageReq {
     MessageContent message = 3; // 消息内容--消息类型+内容
 }
 
+message NewMessageRsp{
+    bool success = 1;
+    string errmsg = 2;
+}
+
 //这个用于内部的通信,生成完整的消息信息，并获取消息的转发人员列表
 message GetTransmitTargetRsp {
     bool success = 1;

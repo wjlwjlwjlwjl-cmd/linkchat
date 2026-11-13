@@ -9,7 +9,7 @@
 class TransmiteDao {
 public:
     using Ptr = std::shared_ptr<TransmiteDao>;
-    TransmiteDao(const char* user, const char* passwd, const char* db_name = "msg_db", const char* host = "mysql-service", 
+    TransmiteDao(const char* user, const char* passwd, const char* db_name = "linkchat", const char* host = "mysql-service", 
         unsigned int port = 3306, int connection_pool_size = 5);
 
     // 获取发送者信息

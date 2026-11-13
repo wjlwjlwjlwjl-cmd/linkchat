@@ -7,6 +7,7 @@ namespace service_name{
     inline constexpr const char* file_service = "FILE_SERVICE";
     inline constexpr const char* message_storage_service = "MESSAGE_SERVICE";
     inline constexpr const char* user_service = "USER_SERVICE";
+    inline constexpr const char* transmite_service = "TRANSMITE_SERVICE";
 }
 
 namespace service_prefix{

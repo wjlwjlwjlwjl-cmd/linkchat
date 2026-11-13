@@ -36,6 +36,7 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type, content)){
         return false;
     }
+    LOG_INFO("PersistMessage: {}", message_id);
 
     if(message_type == ::linkchat::MessageType::STRING){
         if(!info.message().has_string_message()){

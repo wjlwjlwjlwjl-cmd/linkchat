@@ -25,7 +25,7 @@ public:
     MessageServer(
         const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
                 int timeout_ms, int max_retry,
-                const char* user, const char* passwd, const char* db_name = "db_msg", const char* host = "mysql-service",
+                const char* user, const char* passwd, const char* db_name = "linkchat", const char* host = "mysql-service",
                 unsigned int port = 3306, int connection_pool_size = 5,
                 const char* elastic_url = "http://elastic:123456@elasticsearch-service:9200/",
                 const char* index_name = "message", const char* doc_type = "_doc", const char* id = ""

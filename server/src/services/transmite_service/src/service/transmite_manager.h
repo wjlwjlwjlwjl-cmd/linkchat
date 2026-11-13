@@ -14,6 +14,8 @@
 
 class TransmiteManager{
 public:
+    using Ptr = std::shared_ptr<TransmiteManager>;  
+
     TransmiteManager(TransmiteDao::Ptr dao, 
         const std::string& exchange, const std::string& binding_key, MqClient::Ptr mq_client);
 

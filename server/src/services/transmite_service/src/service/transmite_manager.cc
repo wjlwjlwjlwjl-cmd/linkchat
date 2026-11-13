@@ -10,6 +10,8 @@ TransmiteManager::TransmiteManager(TransmiteDao::Ptr dao,
     mq_client_ = mq_client;
 }
 
+TransmiteManager::~TransmiteManager() = default;
+
 ::linkchat::GetTransmitTargetRsp TransmiteManager::GetTransmitTarget(const ::linkchat::NewMessageReq& req){
     ::linkchat::GetTransmitTargetRsp rsp;
 

@@ -14,6 +14,8 @@
 #include "user.pb.h"
 #include "file.pb.h"
 #include "message.pb.h"
+#include "transmite.pb.h"
+
 #include "logging/logger.h"
 #include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
@@ -43,6 +45,9 @@ public:
     #define SET_USER_AVATAR "/user/avatar/set"
     #define SET_USER_DESCRIPTION "/user/description/set"
     #define SET_USER_NICKNAME "/user/nickname/set"
+
+    // TransmiteService
+    #define NEW_MESSAGE "/transmite/publish"
 
     Gateway(std::shared_ptr<::brpc::ChannelOptions> options, SvcDiscovery::Ptr svc_discovery, 
         redis_factory::RedisConnectionInfo& redis_connection_info){
@@ -134,6 +139,14 @@ public:
         http_server_.Post(SET_USER_NICKNAME, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 SetUserNickname(req, res);
+            });
+        
+        ///////////////////////////////
+        // MsgTransmitService
+        ///////////////////////////////
+        http_server_.Post(NEW_MESSAGE, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                NewMessage(req, res);
             });
     }
 
@@ -859,6 +872,55 @@ private:
         }
         std::string content;
         ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    void NewMessage(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::transmite_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::transmite_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::transmite_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::brpc::Controller cntl;
+        ::linkchat::MsgTransmitService_Stub stub(channel.get());
+        ::linkchat::NewMessageReq request;
+        ::linkchat::GetTransmitTargetRsp response;
+        auto status = ::google::protobuf::util::JsonStringToMessage(req.body, &request);
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        request.set_token(token);
+        if(!status.ok()){
+            res.status = 400;
+            return;
+        }
+        stub.GetTransmitTarget(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::NewMessageRsp rsp;
+        rsp.set_success(response.success());
+        rsp.set_errmsg(response.errmsg());
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(rsp, &content);
         if(content == ""){
             res.status = 500;
             return;
