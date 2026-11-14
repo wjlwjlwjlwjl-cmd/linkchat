@@ -1,4 +1,4 @@
-#include "transmite_server.h"
+#include "transmite_controller.h"
 #include <brpc/closure_guard.h>
 
 namespace {
@@ -69,13 +69,13 @@ void ToProtoMessageInfo(const MessageInfo& src, ::linkchat::MessageInfo* dst) {
 
 } // namespace
 
-TransmiteServer::TransmiteServer(TransmiteManager::Ptr transmite_manager)
+TransmiteController::TransmiteController(TransmiteManager::Ptr transmite_manager)
     : transmite_manager_(transmite_manager) {
 }
 
-TransmiteServer::~TransmiteServer() = default;
+TransmiteController::~TransmiteController() = default;
 
-void TransmiteServer::GetTransmitTarget(::google::protobuf::RpcController* controller,
+void TransmiteController::GetTransmitTarget(::google::protobuf::RpcController* controller,
                     const ::linkchat::NewMessageReq* request,
                     ::linkchat::GetTransmitTargetRsp* response,
                     ::google::protobuf::Closure* done){

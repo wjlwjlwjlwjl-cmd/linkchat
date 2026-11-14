@@ -19,9 +19,9 @@
 #include "service/message_manager.h"
 #include "google/protobuf/util/json_util.h"
 
-class MessageServer: public ::linkchat::MsgStorageService{
+class MessageController: public ::linkchat::MsgStorageService{
 public:
-    MessageServer(
+    MessageController(
         const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
                 int timeout_ms, int max_retry,
                 const char* user, const char* passwd, const char* db_name = "linkchat", const char* host = "mysql-service",

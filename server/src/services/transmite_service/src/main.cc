@@ -4,7 +4,7 @@
 #include "logging/logger.h"
 #include "etcd/registry/service_registry.h"
 #include "service_constants.h"
-#include "server/transmite_server.h"
+#include "controller/transmite_controller.h"
 
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
 DEFINE_string(service_ip, "", "service ip");
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
         FLAGS_mysql_user.c_str(), FLAGS_mysql_passwd.c_str()
     );
     TransmiteManager::Ptr transmite_manager = std::make_shared<TransmiteManager>(dao, FLAGS_amqp_exchange, FLAGS_amqp_binding_key, mq_client);
-    TransmiteServer transmite_server(transmite_manager);
+    TransmiteController transmite_server(transmite_manager);
     if(server.AddService(&transmite_server, brpc::SERVER_DOESNT_OWN_SERVICE) != 0){
         LOG_ERROR("Fail to add service to brpc server");
         abort();

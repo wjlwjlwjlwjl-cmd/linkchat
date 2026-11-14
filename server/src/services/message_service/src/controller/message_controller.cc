@@ -1,4 +1,4 @@
-#include "message_server.h"
+#include "message_controller.h"
 #include "base.pb.h"
 #include <brpc/closure_guard.h>
 
@@ -86,7 +86,7 @@ void AddMessageList(const std::vector<MessageInfo>& msgs,
 
 } // namespace
 
-MessageServer::MessageServer(
+MessageController::MessageController(
     const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
             int timeout_ms, int max_retry,
             const char* user, const char* passwd, const char* db_name, const char* host,
@@ -98,7 +98,7 @@ MessageServer::MessageServer(
         index_name, doc_type);
 }
 
-void MessageServer::GetHistoryMsg(::google::protobuf::RpcController* controller,
+void MessageController::GetHistoryMsg(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetHistoryMsgReq* request,
                     ::linkchat::GetHistoryMsgRsp* response,
                     ::google::protobuf::Closure* done){
@@ -109,7 +109,7 @@ void MessageServer::GetHistoryMsg(::google::protobuf::RpcController* controller,
     response->set_success(true);
 }
 
-void MessageServer::GetRecentMsg(::google::protobuf::RpcController* controller,
+void MessageController::GetRecentMsg(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetRecentMsgReq* request,
                     ::linkchat::GetRecentMsgRsp* response,
                     ::google::protobuf::Closure* done){
@@ -120,7 +120,7 @@ void MessageServer::GetRecentMsg(::google::protobuf::RpcController* controller,
     response->set_success(true);
 }
 
-void MessageServer::MsgSearch(::google::protobuf::RpcController* controller,
+void MessageController::MsgSearch(::google::protobuf::RpcController* controller,
                     const ::linkchat::MsgSearchReq* request,
                     ::linkchat::MsgSearchRsp* response,
                     ::google::protobuf::Closure* done){
@@ -135,7 +135,7 @@ void MessageServer::MsgSearch(::google::protobuf::RpcController* controller,
     response->set_success(true);
 }
 
-bool MessageServer::OnMessage(const char* message, int size){
+bool MessageController::OnMessage(const char* message, int size){
     std::string raw = std::string(message, size);
     ::linkchat::MessageInfo message_info;
     auto status =::google::protobuf::util::JsonStringToMessage(raw, &message_info);

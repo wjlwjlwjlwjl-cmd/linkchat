@@ -9,9 +9,9 @@
 #include "file.pb.h"
 #include "service/file_manager.h"
 
-class FileServer: public ::linkchat::FileService{
+class FileController: public ::linkchat::FileService{
 public:
-    FileServer(FileManager::Ptr service);
+    FileController(FileManager::Ptr service);
 
     void GetSingleFile(::google::protobuf::RpcController* controller,
                        const ::linkchat::GetSingleFileReq* request,

@@ -4,9 +4,9 @@
 #include "domain/login_dto.h"
 #include "domain/user_dto.h"
 
-class UserServer: public ::linkchat::UserService{
+class UserController: public ::linkchat::UserService{
 public:
-    UserServer(UserManager::Ptr user_manager);
+    UserController(UserManager::Ptr user_manager);
 
     virtual void UserRegister(::google::protobuf::RpcController* controller,
                         const ::linkchat::UserRegisterReq* request,

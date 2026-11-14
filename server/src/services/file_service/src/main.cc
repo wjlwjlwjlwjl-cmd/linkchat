@@ -3,7 +3,7 @@
 
 #include "etcd/registry/service_registry.h"
 #include "logging/logger.h"
-#include "server/file_server.h"
+#include "controller/file_controller.h"
 #include "service/file_manager.h"
 #include "dao/OssDao.h"
 #include "service_constants.h"
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     auto dao = std::make_shared<OssDao>(FLAGS_aliyun_endpoint, FLAGS_aliyun_region, FLAGS_aliyun_bucket_name, FLAGS_aliyun_access_id, 
         FLAGS_aliyun_access_key);
     auto service = std::make_shared<FileManager>(dao);
-    FileServer file_server(service);
+    FileController file_server(service);
 
     brpc::Server server;
     if(server.AddService(&file_server, brpc::SERVER_DOESNT_OWN_SERVICE) != 0){

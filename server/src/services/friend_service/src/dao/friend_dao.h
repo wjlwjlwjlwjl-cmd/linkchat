@@ -28,6 +28,8 @@
 
 class FriendDao {
 public:
+    using Ptr = std::shared_ptr<FriendDao>;
+
     FriendDao(const std::string& elastic_url, const std::string& index_name, const std::string& doc_type,
         const char* user, const char* passwd, const char* db_name = "linkchat", 
         const char* host = "mysql-service", unsigned int port = 3306, int connection_pool_size = 5

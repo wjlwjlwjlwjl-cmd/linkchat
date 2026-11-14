@@ -1,10 +1,10 @@
-#include "file_server.h"
+#include "file_controller.h"
 
-FileServer::FileServer(FileManager::Ptr service){
+FileController::FileController(FileManager::Ptr service){
     service_ = service;
 }
 
-void FileServer::GetSingleFile(::google::protobuf::RpcController* controller,
+void FileController::GetSingleFile(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetSingleFileReq* request,
                     ::linkchat::GetSingleFileRsp* response,
                     ::google::protobuf::Closure* done){
@@ -17,7 +17,7 @@ void FileServer::GetSingleFile(::google::protobuf::RpcController* controller,
     response->mutable_file_data()->set_presigned_url(ret.file_data.presigned_url);
 }
 
-void FileServer::GetMultiFile(::google::protobuf::RpcController* controller,
+void FileController::GetMultiFile(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetMultiFileReq* request,
                     ::linkchat::GetMultiFileRsp* response,
                     ::google::protobuf::Closure* done){
@@ -45,7 +45,7 @@ void FileServer::GetMultiFile(::google::protobuf::RpcController* controller,
     }
 }
 
-void FileServer::PutSingleFile(::google::protobuf::RpcController* controller,
+void FileController::PutSingleFile(::google::protobuf::RpcController* controller,
                     const ::linkchat::PutSingleFileReq* request,
                     ::linkchat::PutSingleFileRsp* response,
                     ::google::protobuf::Closure* done){
@@ -60,7 +60,7 @@ void FileServer::PutSingleFile(::google::protobuf::RpcController* controller,
     response->mutable_file_info()->set_file_name(request->file_data().file_name());
 }
 
-void FileServer::PutMultiFile(::google::protobuf::RpcController* controller,
+void FileController::PutMultiFile(::google::protobuf::RpcController* controller,
                     const ::linkchat::PutMultiFileReq* request,
                     ::linkchat::PutMultiFileRsp* response,
                     ::google::protobuf::Closure* done){

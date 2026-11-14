@@ -7,7 +7,7 @@
 #include "amqp/mq_client.h"
 #include "etcd/registry/service_registry.h"
 #include "logging/logger.h"
-#include "server/message_server.h"
+#include "controller/message_controller.h"
 #include "service_constants.h"
 
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
     // 构建 brpc server
     brpc::Server server;
-    MessageServer message_server(FLAGS_etcd_server_ip.c_str(), "baidu_std",
+    MessageController message_server(FLAGS_etcd_server_ip.c_str(), "baidu_std",
                                  FLAGS_connection_timeout_seconds * 1000,
                                  FLAGS_idle_timeout_seconds * 1000,
                                  FLAGS_max_retry, FLAGS_mysql_user.c_str(),
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
                              FLAGS_amqp_queue, FLAGS_amqp_binding_key};
     mq_client.Declare(settings);
     std::function<bool(const char *, int)> cb =
-        std::bind(&MessageServer::OnMessage, &message_server,
+        std::bind(&MessageController::OnMessage, &message_server,
                   std::placeholders::_1, std::placeholders::_2);
     mq_client.Consume(FLAGS_amqp_queue, cb);
     LOG_INFO("Listening rabbit queue: {}", FLAGS_amqp_queue);

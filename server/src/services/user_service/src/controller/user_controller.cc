@@ -1,12 +1,12 @@
-#include "user_server.h"
+#include "user_controller.h"
 #include "base.pb.h"
 #include <brpc/closure_guard.h>
 
-UserServer::UserServer(UserManager::Ptr user_manager){
+UserController::UserController(UserManager::Ptr user_manager){
     user_manager_ = user_manager;
 }
 
-void UserServer::UserRegister(::google::protobuf::RpcController* controller,
+void UserController::UserRegister(::google::protobuf::RpcController* controller,
                     const ::linkchat::UserRegisterReq* request,
                     ::linkchat::UserRegisterRsp* response,
                     ::google::protobuf::Closure* done){
@@ -16,7 +16,7 @@ void UserServer::UserRegister(::google::protobuf::RpcController* controller,
     response->set_errmsg(ret.errmsg);
 }
 
-void UserServer::NicknameLogin(::google::protobuf::RpcController* controller,
+void UserController::NicknameLogin(::google::protobuf::RpcController* controller,
                     const ::linkchat::NicknameLoginReq* request,
                     ::linkchat::NicknameLoginRsp* response,
                     ::google::protobuf::Closure* done){
@@ -27,7 +27,7 @@ void UserServer::NicknameLogin(::google::protobuf::RpcController* controller,
     response->set_token(ret.token);
 }
 
-void UserServer::EmailLogin(::google::protobuf::RpcController* controller,
+void UserController::EmailLogin(::google::protobuf::RpcController* controller,
                     const ::linkchat::EmailLoginReq* request,
                     ::linkchat::EmailLoginRsp* response,
                     ::google::protobuf::Closure* done){
@@ -38,7 +38,7 @@ void UserServer::EmailLogin(::google::protobuf::RpcController* controller,
     response->set_token(ret.token);
 }
 
-void UserServer::GetEmailVerifyCode(::google::protobuf::RpcController* controller,
+void UserController::GetEmailVerifyCode(::google::protobuf::RpcController* controller,
                     const ::linkchat::EmailVerifyCodeReq* request,
                     ::linkchat::EmailVerifyCodeRsp* response,
                     ::google::protobuf::Closure* done){
@@ -48,7 +48,7 @@ void UserServer::GetEmailVerifyCode(::google::protobuf::RpcController* controlle
     response->set_errmsg(ret.errmsg);
 }
 
-void UserServer::GetUserInfo(::google::protobuf::RpcController* controller,
+void UserController::GetUserInfo(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetUserInfoReq* request,
                     ::linkchat::GetUserInfoRsp* response,
                     ::google::protobuf::Closure* done){
@@ -72,7 +72,7 @@ void UserServer::GetUserInfo(::google::protobuf::RpcController* controller,
     response->mutable_user_info()->CopyFrom(user_info);
 }
 
-void UserServer::GetMultiUserInfo(::google::protobuf::RpcController* controller,
+void UserController::GetMultiUserInfo(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetMultiUserInfoReq* request,
                     ::linkchat::GetMultiUserInfoRsp* response,
                     ::google::protobuf::Closure* done){
@@ -97,7 +97,7 @@ void UserServer::GetMultiUserInfo(::google::protobuf::RpcController* controller,
     response->set_errmsg("");
 }
 
-void UserServer::SetUserAvatar(::google::protobuf::RpcController* controller,
+void UserController::SetUserAvatar(::google::protobuf::RpcController* controller,
                     const ::linkchat::SetUserAvatarReq* request,
                     ::linkchat::SetUserAvatarRsp* response,
                     ::google::protobuf::Closure* done){
@@ -116,7 +116,7 @@ void UserServer::SetUserAvatar(::google::protobuf::RpcController* controller,
     response->set_errmsg(ret.errmsg);
 }
 
-void UserServer::SetUserNickname(::google::protobuf::RpcController* controller,
+void UserController::SetUserNickname(::google::protobuf::RpcController* controller,
                     const ::linkchat::SetUserNicknameReq* request,
                     ::linkchat::SetUserNicknameRsp* response,
                     ::google::protobuf::Closure* done){
@@ -134,7 +134,7 @@ void UserServer::SetUserNickname(::google::protobuf::RpcController* controller,
     response->set_errmsg(ret.errmsg);
 }
 
-void UserServer::SetUserDescription(::google::protobuf::RpcController* controller,
+void UserController::SetUserDescription(::google::protobuf::RpcController* controller,
                     const ::linkchat::SetUserDescriptionReq* request,
                     ::linkchat::SetUserDescriptionRsp* response,
                     ::google::protobuf::Closure* done){

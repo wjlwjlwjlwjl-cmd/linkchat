@@ -6,7 +6,7 @@
 #include "service_constants.h"
 #include "dao/user_dao.h"
 #include "service/user_manager.h"
-#include "server/user_server.h"
+#include "controller/user_controller.h"
 
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
 DEFINE_string(service_ip, "", "service ip");
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
         FLAGS_etcd_server_ip, FLAGS_protocol, FLAGS_connection_timeout_seconds * 1000,
         FLAGS_idle_timeout_seconds * 1000, FLAGS_max_retry
     );
-    UserServer user_server(manager);
+    UserController user_server(manager);
 
     brpc::Server server;
     if(server.AddService(&user_server, ::brpc::SERVER_DOESNT_OWN_SERVICE) != 0){

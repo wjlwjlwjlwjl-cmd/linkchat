@@ -2,16 +2,16 @@
 #include "transmite.pb.h"
 #include "service/transmite_manager.h"
 
-class TransmiteServer : public ::linkchat::MsgTransmitService{
+class TransmiteController : public ::linkchat::MsgTransmitService{
 public:
-    TransmiteServer(TransmiteManager::Ptr);
+    TransmiteController(TransmiteManager::Ptr);
 
     virtual void GetTransmitTarget(::google::protobuf::RpcController* controller,
                        const ::linkchat::NewMessageReq* request,
                        ::linkchat::GetTransmitTargetRsp* response,
                        ::google::protobuf::Closure* done);
 
-    ~TransmiteServer();
+    ~TransmiteController();
 private:
     TransmiteManager::Ptr transmite_manager_;
 };
