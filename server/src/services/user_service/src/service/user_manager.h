@@ -5,13 +5,11 @@
 #include "redis/redis_factory.h"
 #include "redis_constants.h"
 #include "domain/user_dto.h"
-#include "domain/common_dto.h"
+#include "common_dto.h"
 #include "botan/argon2id.h"
 #include "jwt_util.h"
 #include "random_id.h"
 #include "mail/mail_sender.h"
-#include "base.pb.h"
-#include "file.pb.h"
 #include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
 #include "elastic/elastic_client.h"
@@ -24,7 +22,8 @@ public:
         const std::string& smtp_host, const std::string& smtp_user, const std::string& smtp_pass,
         const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
         int timeout_ms, int max_retry,
-        const std::string& elastic_url, const std::string& index_name, const std::string& doc_type
+        const std::string& elastic_url = "http://elastic:123456@elasticsearch-service:9200/", 
+        const std::string& index_name = "user", const std::string& doc_type = "_doc"
     );
 
     /// @brief 用户注册

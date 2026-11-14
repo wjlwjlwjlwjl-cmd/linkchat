@@ -4,7 +4,7 @@
 #include "random_id.h"
 #include "service_constants.h"
 
-#include "domain/common_dto.h"
+#include "common_dto.h"
 #include "domain/get_friend_dto.h"
 #include "domain/friend_add_dto.h"
 #include "domain/friend_add_process_dto.h"

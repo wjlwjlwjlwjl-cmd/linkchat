@@ -1,6 +1,5 @@
 #include "message_manager.h"
 #include "etcd/discover/service_discovery.h"
-#include "message.pb.h"
 #include "rpc/channels.h"
 #include "jwt_util.h"
 
@@ -13,7 +12,7 @@ MessageManager::MessageManager(
     const char* doc_type, const char* id){
 
     dao_ = std::make_shared<MessageDao>(user, passwd, db_name, host, port, connection_pool_size,
-        elastic_url, index_name, doc_type, id);
+        elastic_url, index_name, doc_type);
 
     SvcDiscovery::ModCallback cb_online = std::function<void(const std::string&, const std::string&)>();
     SvcDiscovery::ModCallback cb_offline = std::function<void(const std::string&, const std::string&)>();
@@ -26,27 +25,28 @@ MessageManager::MessageManager(
     channel_options_.protocol = protocol;
 }
 
-bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
+bool MessageManager::PersistMessage(const MessageInfo& info){
     // 取出消息的 metadata，并对所有消息的消息原信息进行存储
-    std::string message_id = info.message_id();
-    std::string chat_session_id = info.chat_session_id();
-    std::string user_id = info.sender().user_id();
-    ::linkchat::MessageType message_type = info.message().message_type();
-    std::string content = message_type == ::linkchat::MessageType::STRING ? info.message().string_message().content() : "";
+    std::string message_id = info.message_id;
+    std::string chat_session_id = info.chat_session_id;
+    std::string user_id = info.sender.user_id;
+    MessageType message_type = info.message.message_type;
+    std::string content = message_type == MessageType::STRING && info.message.string_message
+        ? info.message.string_message->content : "";
     if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type, content)){
         return false;
     }
     LOG_INFO("PersistMessage: {}", message_id);
 
-    if(message_type == ::linkchat::MessageType::STRING){
-        if(!info.message().has_string_message()){
-            LOG_WARN("string message {} has wrong content", info.message_id());
+    if(message_type == MessageType::STRING){
+        if(!info.message.string_message){
+            LOG_WARN("string message {} has wrong content", message_id);
             return false;
         }
-        std::string content = info.message().string_message().content();
+        std::string content = info.message.string_message->content;
         return dao_->MsgElasticStore(content, chat_session_id, message_id, user_id);
     }
-    else if(message_type == ::linkchat::MessageType::FILE){
+    else if(message_type == MessageType::FILE){
         // 对于文件、图片类型的消息，上传阿里云对象存储
         std::string ip;
         ChannelPtr channel = svc_discovery_->GetSvcChannel(service_name::file_service, ip);
@@ -59,8 +59,10 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
         ::linkchat::FileService_Stub stub(channel.get());
         ::linkchat::PutSingleFileReq req;
 
-        std::string file_name = info.message().file_message().file_name();
-        std::string file_content = info.message().file_message().file_content();
+        std::string file_name = info.message.file_message
+            ? info.message.file_message->file_name.value_or("") : "";
+        std::string file_content = info.message.file_message
+            ? info.message.file_message->file_content.value_or("") : "";
         req.mutable_file_data()->set_file_name(file_name);
         req.mutable_file_data()->set_file_content(file_content);
 
@@ -87,44 +89,37 @@ bool MessageManager::PersistMessage(::linkchat::MessageInfo& info){
     return false;
 }
 
-void MessageManager::GetHistoryMsg(const ::linkchat::GetHistoryMsgReq& request, ::linkchat::GetHistoryMsgRsp& rsp){
-    using namespace linkchat;
-    std::string token = request.token();
+std::vector<MessageInfo> MessageManager::GetHistoryMsg(const std::string& chat_session_id, int64_t start_time,
+    int64_t over_time, const std::string& token){
     std::string user_id;
     if(!JwtParse(token, "user_id", user_id)){
-        return;
+        return {};
     }
-    if(user_id == "") return;
+    if(user_id == "") return {};
 
-    auto msgs = dao_->GetHistroyMsg(request.chat_session_id(), request.start_time(),
-        request.over_time(), user_id);
-    rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
+    return dao_->GetHistroyMsg(chat_session_id, start_time, over_time, user_id);
 }
 
-void MessageManager::GetRecentMsg(const ::linkchat::GetRecentMsgReq& request, ::linkchat::GetRecentMsgRsp& rsp){
-    using namespace linkchat;
-    std::string token = request.token();
+std::vector<MessageInfo> MessageManager::GetRecentMsg(const std::string& chat_session_id, int64_t msg_count,
+    int64_t cur_time, const std::string& token){
     std::string user_id;
     if(!JwtParse(token, "user_id", user_id)){
-        return;
+        return {};
     }
-    if(user_id == "") return;
-    auto msgs = dao_->GetRecentMsg(request.chat_session_id(), request.msg_count(),
-        request.cur_time(), user_id);
-    rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
+    if(user_id == "") return {};
+
+    return dao_->GetRecentMsg(chat_session_id, msg_count, cur_time, user_id);
 }
 
-void MessageManager::MsgSearch(const ::linkchat::MsgSearchReq& request, ::linkchat::MsgSearchRsp& rsp){
-    using namespace linkchat;
-    std::string token = request.token();
+std::vector<MessageInfo> MessageManager::MsgSearch(const std::string& chat_session_id,
+    const std::string& search_key, const std::string& token){
     std::string user_id;
     if(!JwtParse(token, "user_id", user_id)){
-        return;
+        return {};
     }
-    if(user_id == "") return;
-    if(request.chat_session_id().empty() || request.search_key().empty()){
-        return;
+    if(user_id == "") return {};
+    if(chat_session_id.empty() || search_key.empty()){
+        return {};
     }
-    auto msgs = dao_->MsgSearch(request.chat_session_id(), user_id, request.search_key());
-    rsp.mutable_msg_list()->Add(msgs.begin(), msgs.end());
+    return dao_->MsgSearch(chat_session_id, user_id, search_key);
 }

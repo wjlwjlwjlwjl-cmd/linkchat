@@ -1,6 +1,9 @@
 #pragma once
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "dao/message_dao.h"
-#include "message.pb.h"
 #include "file.pb.h"
 #include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
@@ -17,14 +20,17 @@ public:
         const char* index_name = "message", const char* doc_type = "_doc", const char* id = "");
 
     //消息持久化
-    bool PersistMessage(::linkchat::MessageInfo& info);
+    bool PersistMessage(const MessageInfo& info);
 
     // 三个 brpc 接口
-    void GetHistoryMsg(const ::linkchat::GetHistoryMsgReq& request, ::linkchat::GetHistoryMsgRsp&);
+    std::vector<MessageInfo> GetHistoryMsg(const std::string& chat_session_id, int64_t start_time,
+        int64_t over_time, const std::string& token);
     
-    void GetRecentMsg(const ::linkchat::GetRecentMsgReq& request, ::linkchat::GetRecentMsgRsp&);
+    std::vector<MessageInfo> GetRecentMsg(const std::string& chat_session_id, int64_t msg_count,
+        int64_t cur_time, const std::string& token);
     
-    void MsgSearch(const ::linkchat::MsgSearchReq& request, ::linkchat::MsgSearchRsp&);
+    std::vector<MessageInfo> MsgSearch(const std::string& chat_session_id, const std::string& search_key,
+        const std::string& token);
 private:
     MessageDao::Ptr dao_;
     

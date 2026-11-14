@@ -1,6 +1,8 @@
 #include "user_manager.h"
 #include "logging/logger.h"
 #include "random_id.h"
+#include "base.pb.h"
+#include "file.pb.h"
 
 UserManager::UserManager(UserDao::Ptr dao, redis_factory::RedisConnectionInfo redis_info, 
     const std::string& host, const std::string& user, const std::string& pass,

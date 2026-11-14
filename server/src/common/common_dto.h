@@ -1,7 +1,8 @@
 #pragma once
+
 #include <string>
 
-struct CommonDTO{
+struct CommonDTO {
     bool success;
     std::string errmsg;
 };

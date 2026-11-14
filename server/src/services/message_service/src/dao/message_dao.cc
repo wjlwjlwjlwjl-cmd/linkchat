@@ -3,6 +3,47 @@
 #include "logging/logger.h"
 #include <stdexcept>
 
+namespace {
+
+constexpr int kMsgTypeString = 0;
+constexpr int kMsgTypeFile = 1;
+
+// 将消息实体转换为通用消息结构
+bool FillMessageInfo(const MessageEntity& msg, MessageInfo& msg_info) {
+    msg_info.message_id = msg.message_id();
+    msg_info.chat_session_id = msg.to_session_id();
+    msg_info.sender.user_id = msg.from_user_id();
+
+    if (msg.message_type() == kMsgTypeString) {
+        msg_info.message.message_type = MessageType::STRING;
+        if (msg.has_content()) {
+            StringMessageInfo string_message;
+            string_message.content = msg.content().get();
+            msg_info.message.string_message = std::move(string_message);
+        }
+    }
+    else if (msg.message_type() == kMsgTypeFile) {
+        msg_info.message.message_type = MessageType::FILE;
+        FileMessageInfo file_message;
+        if (msg.has_file_id()) {
+            file_message.file_id = msg.file_id().get();
+        }
+        if (msg.has_file_name()) {
+            file_message.file_name = msg.file_name().get();
+        }
+        if (msg.has_file_size()) {
+            file_message.file_size = static_cast<int64_t>(msg.file_size().get());
+        }
+        msg_info.message.file_message = std::move(file_message);
+    }
+    else {
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
 MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name, const char* host,
     unsigned int port, int connection_pool_size, const char* elastic_url,
     const char* index_name, const char* doc_type)
@@ -22,12 +63,12 @@ MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name
 }
 
 bool MessageDao::MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id,
-    const std::string& user_id, ::linkchat::MessageType& messageType, const std::string& content){
+    const std::string& user_id, MessageType message_type, const std::string& content){
     MessageEntity msg;
     msg.set_message_id(message_id);
     msg.set_to_session_id(chat_session_id);
     msg.set_from_user_id(user_id);
-    msg.set_message_type(static_cast<signed char>(messageType));
+    msg.set_message_type(static_cast<signed char>(message_type));
     msg.set_create_time(boost::posix_time::second_clock::local_time());
     msg.set_content(content); //对于文字类型，这里为文字内容；文件类型，这里为空（服务层设置为空）
 
@@ -90,9 +131,9 @@ bool MessageDao::UpdateFileMetadata(const std::string& message_id, const std::st
 }
 
 // 获取某个会话 chat_session_id 中，一个用户 user_id，在 cur_time 前的 msg_count 条消息
-std::vector<::linkchat::MessageInfo> MessageDao::GetRecentMsg(const std::string& chat_session_id, int msg_count, 
+std::vector<MessageInfo> MessageDao::GetRecentMsg(const std::string& chat_session_id, int msg_count, 
     int64_t cur_time, const std::string& user_id){
-    std::vector<::linkchat::MessageInfo> msgs;
+    std::vector<MessageInfo> msgs;
     try{
         auto transaction = MysqlClient::Transaction(db_);
 
@@ -110,30 +151,9 @@ std::vector<::linkchat::MessageInfo> MessageDao::GetRecentMsg(const std::string&
             && query::from_user_id == user_id)
             + " ORDER BY " + query::create_time + " DESC LIMIT " + std::to_string(msg_count));
 
-        constexpr int kMsgTypeString = 0;
-        constexpr int kMsgTypeFile   = 1;
-
         for(auto& msg: r){
-            ::linkchat::MessageInfo msg_info;
-            msg_info.set_message_id(msg.message_id());
-            msg_info.set_chat_session_id(msg.to_session_id());
-            msg_info.mutable_sender()->set_user_id(msg.from_user_id());
-
-            if(msg.message_type() == kMsgTypeString){
-                msg_info.mutable_message()->set_message_type(::linkchat::MessageType::STRING);
-                if(msg.has_content())
-                    msg_info.mutable_message()->mutable_string_message()->set_content(msg.content().get());
-            }
-            else if(msg.message_type() == kMsgTypeFile){
-                msg_info.mutable_message()->set_message_type(::linkchat::MessageType::FILE);
-                if(msg.has_file_id())
-                    msg_info.mutable_message()->mutable_file_message()->set_file_id(msg.file_id().get());
-                if(msg.has_file_name())
-                    msg_info.mutable_message()->mutable_file_message()->set_file_name(msg.file_name().get());
-                if(msg.has_file_size())
-                    msg_info.mutable_message()->mutable_file_message()->set_file_size(msg.file_size().get());
-            }
-            else{
+            MessageInfo msg_info;
+            if (!FillMessageInfo(msg, msg_info)) {
                 LOG_WARN("Unknown message type {}: {}", msg.message_id(), msg.message_type());
                 continue;
             }
@@ -150,9 +170,9 @@ std::vector<::linkchat::MessageInfo> MessageDao::GetRecentMsg(const std::string&
 }
 
 // 获取会话 chat_session_id，从 start_time 开始，到 end_time 结束的 user_id 的消息
-std::vector<::linkchat::MessageInfo> MessageDao::GetHistroyMsg(const std::string& chat_session_id, int64_t start_time, 
+std::vector<MessageInfo> MessageDao::GetHistroyMsg(const std::string& chat_session_id, int64_t start_time, 
     int64_t end_time, const std::string& user_id) {
-    std::vector<::linkchat::MessageInfo> msgs;
+    std::vector<MessageInfo> msgs;
     try {
         auto transaction = MysqlClient::Transaction(db_);
 
@@ -172,28 +192,9 @@ std::vector<::linkchat::MessageInfo> MessageDao::GetHistroyMsg(const std::string
         result r = db_->query<MessageEntity>(
             q + " ORDER BY " + query::create_time + " ASC");
 
-        constexpr int kMsgTypeString = 0;
-        constexpr int kMsgTypeFile   = 1;
-
         for (auto& msg : r) {
-            ::linkchat::MessageInfo msg_info;
-            msg_info.set_message_id(msg.message_id());
-            msg_info.set_chat_session_id(msg.to_session_id());
-            msg_info.mutable_sender()->set_user_id(msg.from_user_id());
-
-            if (msg.message_type() == kMsgTypeString) {
-                msg_info.mutable_message()->set_message_type(::linkchat::MessageType::STRING);
-                if (msg.has_content())
-                    msg_info.mutable_message()->mutable_string_message()->set_content(msg.content().get());
-            } else if (msg.message_type() == kMsgTypeFile) {
-                msg_info.mutable_message()->set_message_type(::linkchat::MessageType::FILE);
-                if (msg.has_file_id())
-                    msg_info.mutable_message()->mutable_file_message()->set_file_id(msg.file_id().get());
-                if (msg.has_file_name())
-                    msg_info.mutable_message()->mutable_file_message()->set_file_name(msg.file_name().get());
-                if (msg.has_file_size())
-                    msg_info.mutable_message()->mutable_file_message()->set_file_size(msg.file_size().get());
-            } else {
+            MessageInfo msg_info;
+            if (!FillMessageInfo(msg, msg_info)) {
                 LOG_WARN("Unknown message type {}: {}", msg.message_id(), msg.message_type());
                 continue;
             }
@@ -208,9 +209,9 @@ std::vector<::linkchat::MessageInfo> MessageDao::GetHistroyMsg(const std::string
     return msgs;
 }
 
-std::vector<::linkchat::MessageInfo> MessageDao::MsgSearch(const std::string& chat_session_id, const std::string& user_id,
+std::vector<MessageInfo> MessageDao::MsgSearch(const std::string& chat_session_id, const std::string& user_id,
     const std::string& search_key){
-    std::vector<::linkchat::MessageInfo> msgs;
+    std::vector<MessageInfo> msgs;
     // 必传参数为空时直接返回，避免 ES 侧跳过过滤条件导致跨会话/全量检索
     if(chat_session_id.empty() || search_key.empty()){
         return msgs;
@@ -278,20 +279,22 @@ std::vector<::linkchat::MessageInfo> MessageDao::MsgSearch(const std::string& ch
         auto transaction = MysqlClient::Transaction(db_);
 
         for(auto& msg_id: message_ids){
-            ::linkchat::MessageInfo msg_info;
+            MessageInfo msg_info;
 
             auto msg = db_->query_one<MessageEntity>(odb::query<MessageEntity>::message_id == msg_id);
             if(msg == nullptr){
                 continue;
             }
 
-            msg_info.set_message_id(msg->message_id());
-            msg_info.set_chat_session_id(msg->to_session_id());
-            msg_info.mutable_sender()->set_user_id(msg->from_user_id());
+            msg_info.message_id = msg->message_id();
+            msg_info.chat_session_id = msg->to_session_id();
+            msg_info.sender.user_id = msg->from_user_id();
 
-            msg_info.mutable_message()->set_message_type(::linkchat::MessageType::STRING);
+            msg_info.message.message_type = MessageType::STRING;
             if (msg->has_content()){
-                msg_info.mutable_message()->mutable_string_message()->set_content(msg->content().get());
+                StringMessageInfo string_message;
+                string_message.content = msg->content().get();
+                msg_info.message.string_message = std::move(string_message);
             }
             msgs.push_back(std::move(msg_info));
         }
