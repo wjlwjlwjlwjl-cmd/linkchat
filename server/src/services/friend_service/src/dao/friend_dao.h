@@ -10,6 +10,9 @@
 #include "domain/friend_add_process_dto.h"
 #include "domain/get_pending_friend_event_dto.h"
 #include "domain/friend_search_dto.h"
+#include "domain/get_chat_session_dto.h"
+#include "domain/chat_session_create_dto.h"
+#include "domain/get_chat_session_member.h"
 
 #include "elastic/elastic_client.h"
 
@@ -66,6 +69,22 @@ public:
     /// @param user_id 用户ID
     /// @return FriendSearchDTO 好友搜索DTO
     FriendSearchDTO FriendSearch(const std::string& search_key, int count);
+
+    /// @brief 获取用户聊天会话列表，这里只是填充了聊天相关信息和上一条消息信息，但是会话头像需要后续通过 user 服务补全（service层完成）
+    /// @param user_id 用户ID
+    /// @return GetChatSessionDTO 聊天会话列表DTO
+    GetChatSessionDTO GetChatSession(const std::string& user_id);
+
+    /// @brief 创建群聊会话
+    /// @param chat_session_create_dto 创建会话DTO
+    /// @return ChatSessionCreateDTO 创建会话DTO
+    ChatSessionCreateDTO CreateChatSession(const std::string& user_id, const std::string& chat_session_name, 
+        const std::vector<std::string>& member_id_list);
+
+    /// @brief 获取群聊会话成员列表
+    /// @param get_chat_session_member_dto 获取会话成员列表DTO
+    /// @return GetChatSessionMemberDTO 获取会话成员列表DTO
+    GetChatSessionMemberDTO GetChatSessionMember(const std::string& user_id, const std::string& chat_session_id);
 private:
     MysqlClient::Ptr db_;
     ElasticClient::Ptr es_;

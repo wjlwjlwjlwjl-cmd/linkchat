@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "common_dto.h"
 #include "message_info.h"
@@ -19,4 +20,5 @@ struct ChatSessionInfo {
 };
 
 struct GetChatSessionDTO: public CommonDTO{
+    std::vector<ChatSessionInfo> chat_sessions;
 };
