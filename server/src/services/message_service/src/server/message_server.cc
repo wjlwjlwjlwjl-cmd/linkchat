@@ -7,8 +7,7 @@ MessageServer::MessageServer(
             int timeout_ms, int max_retry,
             const char* user, const char* passwd, const char* db_name, const char* host,
             unsigned int port, int connection_pool_size,
-            const char* elastic_url,
-            const char* index_name, const char* doc_type, const char* id
+            const char* elastic_url, const char* index_name, const char* doc_type, const char* id
 ){
     manager_ = std::make_shared<MessageManager>(etcd_server_ip, protocol, connect_timeout_ms,
         timeout_ms, max_retry, user, passwd, db_name, host, port, connection_pool_size, elastic_url,

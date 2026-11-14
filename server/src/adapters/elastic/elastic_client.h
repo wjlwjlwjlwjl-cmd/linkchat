@@ -10,6 +10,7 @@
 
 class ElasticClient {
 public:
+    using Ptr = std::shared_ptr<ElasticClient>;
     using Value = Json::Value;
 
     /*
@@ -22,14 +23,19 @@ public:
     using DataType = std::vector<std::pair<std::string, std::string>>;
     ElasticClient() = delete;
 
-    inline ElasticClient(const std::string& index_name, const std::string& doc_type = "_doc", const std::string id = "",
+    inline ElasticClient(const std::string& index_name, const std::string& doc_type = "_doc",
         const std::vector<std::string>& urls = {"http://elastic:123456@elasticsearch-service:9200/"})
         : client_(std::make_shared<elasticlient::Client>(urls))
         , index_name_(index_name)
         , doc_type_(doc_type)
-        , id_(id)
     {}
 
+    /// @brief 创建 ES 索引
+    /// @param properties 索引属性
+    /// @param type 分词器类型
+    /// @param tokenizer 分词器
+    /// @param dynamic 是否动态映射
+    /// @return 成功返回 true，失败返回 false
     inline bool CreateIndex(PropType& properties, const std::string& type = "custom",
         const std::string& tokenizer = "ik_max_word", bool dynamic = false
     ) {
@@ -73,19 +79,22 @@ public:
         return true;
     }
 
-    bool AddData(DataType& data) {
+    /// @brief 添加数据到 ES 索引
+    /// @param data 数据
+    /// @return 成功返回空字符串，失败返回错误信息
+    std::string AddData(DataType& data, const std::string& id = "") {
         Value root;
         for (auto [key, val] : data) {
             root[key] = val;
         }
         std::string body = JsonCodec::Serialize(root);
-        auto resp = client_->index(index_name_, doc_type_, id_, body);
+        auto resp = client_->index(index_name_, doc_type_, id, body);
         if (resp.status_code < 200 || resp.status_code >= 300) {
             LOG_ERROR("Add data to {} fail, {}", index_name_, resp.text);
-            return false;
+            return resp.text;
         }
         LOG_INFO("Add data to {} success", index_name_);
-        return true;
+        return "";
     }
 
     /// @brief 精确查询 + 模糊匹配
@@ -159,6 +168,6 @@ public:
 private:
     std::string index_name_;
     std::string doc_type_;
-    std::string id_;
+    //std::string id_;
     std::shared_ptr<elasticlient::Client> client_;
 };

@@ -5,7 +5,8 @@
 UserManager::UserManager(UserDao::Ptr dao, redis_factory::RedisConnectionInfo redis_info, 
     const std::string& host, const std::string& user, const std::string& pass,
     const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
-    int timeout_ms, int max_retry
+    int timeout_ms, int max_retry,
+    const std::string& elastic_url, const std::string& index_name, const std::string& doc_type
 ){
     dao_ = dao;
 
@@ -29,6 +30,16 @@ UserManager::UserManager(UserDao::Ptr dao, redis_factory::RedisConnectionInfo re
     SvcDiscovery::ModCallback cb_offline = std::function<void(const std::string&, const std::string&)>();
     svc_discovery_ = std::make_shared<SvcDiscovery>(etcd_server_ip, std::move(cb_online), std::move(cb_offline));
     svc_discovery_->Watch(); // 到 etcd 全量获取一次服务-节点信息
+
+    es_ = std::make_shared<ElasticClient>(index_name, doc_type, std::vector<std::string>{elastic_url});
+    ElasticClient::PropType props = {
+        {"nickname", {{"type", "text"}, {"analyzer", "ikmax"}}},
+        {"email", {{"type", "keyword"}}},
+        {"user_id", {{"type", "keyword"}}},
+    };
+    if(!es_->CreateIndex(props)){
+        abort();
+    }
 }
 
 CommonDTO UserManager::Register(const std::string &nickname, const std::string &password, 
@@ -40,7 +51,19 @@ CommonDTO UserManager::Register(const std::string &nickname, const std::string &
         return {false, "Verify code is incorrect"};
     }
     redis_template_->del(verify_code_key);
-    std::string ret = dao_->Register(nickname, password, email);
+
+    std::string user_id;
+    std::string ret = dao_->Register(nickname, user_id, password, email);
+    if(!ret.empty()) return {false, ret};
+
+    // 插入数据库后，为了方便后续用户检索，将用户名 + user_id 放到 ES 中
+    ElasticClient::DataType data = {
+        {"nickname", nickname},
+        {"email", email},
+        {"user_id", user_id}
+    };
+    ret = es_->AddData(data);
+
     return {ret.empty(), ret};
 }
 

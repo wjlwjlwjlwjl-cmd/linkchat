@@ -16,7 +16,7 @@ public:
     MessageDao(const char* user, const char* passwd, const char* db_name = "linkchat", const char* host = "mysql-service", 
         unsigned int port = 3306, int connection_pool_size = 5, 
         const char* elastic_url = "http://elastic:123456@elasticsearch-service:9200/", 
-        const char* index_name = "message", const char* doc_type = "_doc", const char* id = "");
+        const char* index_name = "message", const char* doc_type = "_doc");
 
     bool MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id, 
         const std::string& from_user_id, ::linkchat::MessageType& messageType, const std::string& content);

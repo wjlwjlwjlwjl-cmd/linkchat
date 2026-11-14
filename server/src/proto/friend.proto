@@ -65,7 +65,7 @@ message GetPendingFriendEventListRsp {
     repeated FriendEvent event = 3;
 }
 
-//好友搜索
+//用户搜索
 message FriendSearchReq {
     string search_key = 1; //就是名称模糊匹配关键字
     string user_id = 2;
@@ -121,7 +121,7 @@ service FriendService {
     rpc FriendAdd(FriendAddReq) returns (FriendAddRsp);
     //好友申请的处理
     rpc FriendAddProcess(FriendAddProcessReq) returns (FriendAddProcessRsp);
-    //好友搜索
+    //在所有用户中搜索，发送好友申请
     rpc FriendSearch(FriendSearchReq) returns (FriendSearchRsp);
     //会话列表获取
     rpc GetChatSessionList(GetChatSessionListReq) returns (GetChatSessionListRsp);

@@ -12,4 +12,6 @@ namespace service_name{
 
 namespace service_prefix{
     inline constexpr const char* user_avatar_prefix = "avatar_";
+    inline constexpr const char* friend_apply_prefix = "friend_apply_";
+    inline constexpr const char* chat_session_prefix = "chat_session_";
 }

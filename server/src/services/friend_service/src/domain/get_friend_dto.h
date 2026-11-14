@@ -8,5 +8,5 @@
 struct GetFriendDTO {
     bool success;
     std::string errmsg;
-    std::vector<::linkchat::UserInfo> user_info_list;
+    std::vector<std::string> friend_ids; // 后续去调用user_service获取好友信息列表
 };

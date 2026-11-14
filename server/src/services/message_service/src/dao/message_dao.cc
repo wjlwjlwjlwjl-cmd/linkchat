@@ -5,11 +5,11 @@
 
 MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name, const char* host,
     unsigned int port, int connection_pool_size, const char* elastic_url,
-    const char* index_name, const char* doc_type, const char* id)
+    const char* index_name, const char* doc_type)
 {
     db_ = MysqlClient::Create(user, passwd, db_name, host, port, connection_pool_size);
 
-    es_ = std::make_shared<ElasticClient>(index_name, doc_type, id);
+    es_ = std::make_shared<ElasticClient>(index_name, doc_type, std::vector<std::string>{elastic_url});
     ElasticClient::PropType props = {
         {"content", {{"type", "text"}, {"analyzer", "ikmax"}}},
         {"to_chat_session_id", {{"type", "keyword"}}},
@@ -52,7 +52,7 @@ bool MessageDao::MsgElasticStore(const std::string& content, const std::string& 
         {"message_id", message_id},
         {"from_user_id", from_user_id}
     };
-    return es_->AddData(data);
+    return es_->AddData(data, "").empty();
 }
 
 bool MessageDao::UpdateFileMetadata(const std::string& message_id, const std::string& file_name, 

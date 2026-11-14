@@ -8,7 +8,7 @@ CREATE TABLE `tb_friend` (
   `id` BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `event_id` varchar(64) NOT NULL,
   `user_id` varchar(64) NOT NULL,
-  `peer_id` varchar(64) NOT NULL)
+  `respondent_id` varchar(64) NOT NULL)
  ENGINE=InnoDB;
 
 CREATE UNIQUE INDEX `event_id_i`
@@ -17,6 +17,6 @@ CREATE UNIQUE INDEX `event_id_i`
 CREATE INDEX `user_id_i`
   ON `tb_friend` (`user_id`);
 
-CREATE INDEX `peer_id_i`
-  ON `tb_friend` (`peer_id`);
+CREATE INDEX `respondent_id_i`
+  ON `tb_friend` (`respondent_id`);
 

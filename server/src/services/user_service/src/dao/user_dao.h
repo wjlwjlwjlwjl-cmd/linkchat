@@ -17,7 +17,8 @@ public:
     UserDao(const char *user, const char *passwd, const char *db_name, const char *host = "mysql-service",
             unsigned int port = 3306, int connection_pool_size = 5);
 
-    std::string Register(const std::string &nickname, const std::string &password, const std::string &email);
+    std::string Register(const std::string &nickname, const std::string& user_id,
+        const std::string &password, const std::string &email);
 
     UserDTO GetUserById(const std::string &user_id);
     UserDTO GetUserByEmail(const std::string &email);

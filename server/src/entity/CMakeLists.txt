@@ -11,7 +11,7 @@ set(persistent_hdr
     chat_session.h
     chat_session_member.h
     friend_entity.h
-    relation.h
+    relation_entity.h
 )
 
 set(generated_srcs "")

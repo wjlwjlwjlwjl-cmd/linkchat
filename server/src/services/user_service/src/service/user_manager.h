@@ -14,6 +14,7 @@
 #include "file.pb.h"
 #include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
+#include "elastic/elastic_client.h"
 
 class UserManager{
 public:
@@ -22,7 +23,8 @@ public:
     UserManager(UserDao::Ptr dao, redis_factory::RedisConnectionInfo redis_info, 
         const std::string& smtp_host, const std::string& smtp_user, const std::string& smtp_pass,
         const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
-        int timeout_ms, int max_retry
+        int timeout_ms, int max_retry,
+        const std::string& elastic_url, const std::string& index_name, const std::string& doc_type
     );
 
     /// @brief 用户注册
@@ -88,4 +90,5 @@ private:
 
     UserDao::Ptr dao_;
     std::shared_ptr<sw::redis::Redis> redis_template_;
+    ElasticClient::Ptr es_;
 };
