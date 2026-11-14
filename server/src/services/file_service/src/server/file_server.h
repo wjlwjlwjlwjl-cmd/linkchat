@@ -9,8 +9,7 @@
 #include "file.pb.h"
 #include "service/file_manager.h"
 
-using namespace linkchat;
-class FileServer: public FileService{
+class FileServer: public ::linkchat::FileService{
 public:
     FileServer(FileManager::Ptr service);
 

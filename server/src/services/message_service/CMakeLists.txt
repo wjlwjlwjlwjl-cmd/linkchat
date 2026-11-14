@@ -35,6 +35,6 @@ target_include_directories(
 
 target_link_libraries(
     message_storage_service_bin PRIVATE 
-    linkchat_entity linkchat_proto
+    linkchat_entity linkchat_proto linkchat_common
     adapters util constants 
 )

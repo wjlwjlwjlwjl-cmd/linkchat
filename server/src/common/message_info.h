@@ -25,7 +25,7 @@ struct FileMessageInfo {
 };
 
 struct MessageContent {
-    MessageType message_type; //消息类型
+    MessageType message_type = MessageType::STRING; //消息类型
     std::optional<StringMessageInfo> string_message; //文字消息
     std::optional<FileMessageInfo> file_message; //文件消息
 };

@@ -1,5 +1,6 @@
 #include "message_manager.h"
 #include "etcd/discover/service_discovery.h"
+#include "file.pb.h"
 #include "rpc/channels.h"
 #include "jwt_util.h"
 

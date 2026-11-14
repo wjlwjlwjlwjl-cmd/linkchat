@@ -31,10 +31,10 @@ GetFriendDTO FriendDao::GetFriendList(const std::string& user_id){
         }
 
         MysqlClient::Commit(transaction);
-        return {true, "", friend_ids};
+        return {{true, ""}, friend_ids};
     }
     catch(const std::exception& e){
-        return {false, e.what()};
+        return {{false, e.what()}};
     }
 }
 
@@ -136,10 +136,10 @@ GetPendingFriendEventDTO FriendDao::GetPendingFriendEventList(const std::string&
             event_ids.push_back(result.event_id());
         }
         MysqlClient::Commit(transaction);
-        return {true, "", event_ids};
+        return {{true, ""}, event_ids};
     }
     catch(const std::exception& e){
-        return {false, e.what()};
+        return {{false, e.what()}};
     }
 }
 

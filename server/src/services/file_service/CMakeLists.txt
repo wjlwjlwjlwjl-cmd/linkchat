@@ -33,5 +33,5 @@ target_include_directories(
 
 target_link_libraries(
     file_service_bin PRIVATE
-    linkchat_proto gflags adapters util
+    linkchat_proto gflags adapters util linkchat_common
 )

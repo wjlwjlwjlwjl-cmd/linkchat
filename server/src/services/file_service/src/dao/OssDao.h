@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "oss/oss_client.h"
-#include "file.pb.h"
 
 /*
 要提供的方法：

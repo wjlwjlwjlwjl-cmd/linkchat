@@ -1,7 +1,6 @@
 #pragma once
 
 #include "odb_mysql/mysql_client.h"
-#include "transmite.pb.h"
 #include "domain/user_dto.h"
 #include "user_entity.h"
 #include "user_entity-odb.hxx"

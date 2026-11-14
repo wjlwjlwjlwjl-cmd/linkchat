@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include "base.pb.h"
 
 /// @brief 用户DTO
 struct UserDTO{

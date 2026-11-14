@@ -11,26 +11,20 @@ UserDTO TransmiteDao::GetSenderInfo(const std::string& user_id){
         using query = odb::query<::linkchat::User>;
         auto user = db_->query_one<::linkchat::User>(query::user_id == user_id);
         if(!user){
-            return {"User not found", "", "", "", "", ""};
+            return {"User not found", {}};
         }
 
-        std::string nickname, description, email, avatar;
-        if(user->has_nickname()) nickname = user->nickname().get();
-        if(user->has_description()) description = user->description().get();
-        if(user->has_email()) email = user->email().get();
-        if(user->has_avatar_id()) avatar = user->avatar_id().get();
+        UserInfo info;
+        info.user_id = user->user_id();
+        if(user->has_nickname()) info.nickname = user->nickname().get();
+        if(user->has_description()) info.description = user->description().get();
+        if(user->has_email()) info.email = user->email().get();
+        if(user->has_avatar_id()) info.avatar = user->avatar_id().get();
         MysqlClient::Commit(transaction);
-        return {
-            "", 
-            user->user_id(),
-            nickname,
-            description,
-            email,
-            avatar,
-        };
+        return {"", info};
     }
     catch(const std::exception& e){
-        return {e.what(), "", "", "", "", ""};
+        return {e.what(), {}};
     }
     return {};
 }

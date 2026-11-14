@@ -33,6 +33,6 @@ target_include_directories(
 
 target_link_libraries(
     friend_service_bin PRIVATE
-    linkchat_proto linkchat_entity
+    linkchat_proto linkchat_entity linkchat_common
     adapters util 
 )

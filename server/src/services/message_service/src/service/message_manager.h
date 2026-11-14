@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "dao/message_dao.h"
-#include "file.pb.h"
 #include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
 

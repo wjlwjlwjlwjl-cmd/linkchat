@@ -19,8 +19,7 @@
 #include "service/message_manager.h"
 #include "google/protobuf/util/json_util.h"
 
-using namespace linkchat;
-class MessageServer: public MsgStorageService{
+class MessageServer: public ::linkchat::MsgStorageService{
 public:
     MessageServer(
         const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,

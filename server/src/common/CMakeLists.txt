@@ -3,6 +3,6 @@ project(linkchat_common)
 
 file(GLOB_RECURSE HDRS *.h)
 
-add_library(linkchat_common STATIC ${HDRS})
+add_library(linkchat_common INTERFACE)
 
-target_include_directories(linkchat_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(linkchat_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

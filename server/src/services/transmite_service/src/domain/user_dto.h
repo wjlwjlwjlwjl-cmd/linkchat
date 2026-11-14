@@ -1,11 +1,8 @@
 #pragma once
-#include <string>
+
+#include "user_info.h"
 
 struct UserDTO{
     std::string errmsg;
-    std::string user_id;
-    std::string nickname;
-    std::string description;
-    std::string email;
-    std::string avatar;
+    UserInfo user_info;
 };
