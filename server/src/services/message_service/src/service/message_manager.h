@@ -1,3 +1,4 @@
+#pragma once
 #include "dao/message_dao.h"
 #include "message.pb.h"
 #include "file.pb.h"

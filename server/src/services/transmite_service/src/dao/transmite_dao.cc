@@ -35,6 +35,7 @@ UserDTO TransmiteDao::GetSenderInfo(const std::string& user_id){
     return {};
 }
 
+// todo
 std::vector<std::string> TransmiteDao::GetChatSessionUsers(const std::string& chat_session_id){
-
+    return std::vector<std::string>();
 }

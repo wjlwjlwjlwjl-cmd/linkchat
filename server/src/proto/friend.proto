@@ -1,0 +1,134 @@
+syntax = "proto3";
+package linkchat;
+import "base.proto";
+
+option cc_generic_services = true;
+
+//好友列表获取
+message GetFriendListReq {
+    string user_id = 1; // 当前请求的发起者用户ID
+}
+message GetFriendListRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    repeated UserInfo friend_list = 3; //要返回的用户信息
+}
+
+//好友删除
+message FriendRemoveReq {
+    string user_id = 1; //当前用户ID
+    string peer_id = 2; //要删除的好友ID
+}
+message FriendRemoveRsp {
+    bool success = 1;
+    string errmsg = 2; 
+}
+
+//添加好友--发送好友申请
+message FriendAddReq {
+    string user_id = 1; //申请人id
+    string respondent_id = 2; //被申请人id
+}
+message FriendAddRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    string notify_event_id = 3; //通知事件id
+}
+
+//好友申请的处理
+message FriendAddProcessReq {
+    string notify_event_id = 1; //通知事件id
+    bool agree = 2; //是否同意好友申请
+    string apply_user_id = 3; //申请人的用户id
+    optional string user_id = 4; // 被申请人
+}
+
+message FriendAddProcessRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    // 同意后会创建会话，向网关返回会话信息，用于通知双方会话的建立，这个字段客户端不需要关注
+    optional string new_session_id = 3; 
+}
+
+//获取待处理的，申请自己好友的信息列表
+message GetPendingFriendEventListReq {
+    string user_id = 1;
+}
+
+message FriendEvent {
+    string event_id = 1;
+    UserInfo sender = 2;
+}
+message GetPendingFriendEventListRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    repeated FriendEvent event = 3;
+}
+
+//好友搜索
+message FriendSearchReq {
+    string search_key = 1; //就是名称模糊匹配关键字
+    string user_id = 2;
+}
+message FriendSearchRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    repeated UserInfo user_info = 3;
+}
+
+//会话列表获取
+message GetChatSessionListReq {
+    string user_id = 1;
+}
+message GetChatSessionListRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    repeated ChatSessionInfo chat_session_info_list = 3;
+}
+
+//创建会话
+message ChatSessionCreateReq {
+    string user_id = 1;
+    string chat_session_name = 2;
+    //需要注意的是，这个列表中也必须包含创建者自己的用户ID
+    repeated string member_id_list = 3;
+}
+message ChatSessionCreateRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    //这个字段属于后台之间的数据，给前端回复的时候不需要这个字段，会话信息通过通知进行发送
+    optional ChatSessionInfo chat_session_info = 3; 
+}
+
+//获取会话成员列表
+message GetChatSessionMemberReq {
+    string user_id = 1;
+    string chat_session_id = 2;
+}
+message GetChatSessionMemberRsp {
+    bool success = 1;
+    string errmsg = 2; 
+    repeated UserInfo member_info_list = 3;
+}
+
+//好友服务
+service FriendService {
+    //获取好友列表
+    rpc GetFriendList(GetFriendListReq) returns (GetFriendListRsp);
+    //好友删除
+    rpc FriendRemove(FriendRemoveReq) returns (FriendRemoveRsp);
+    //添加好友--发送好友申请
+    rpc FriendAdd(FriendAddReq) returns (FriendAddRsp);
+    //好友申请的处理
+    rpc FriendAddProcess(FriendAddProcessReq) returns (FriendAddProcessRsp);
+    //好友搜索
+    rpc FriendSearch(FriendSearchReq) returns (FriendSearchRsp);
+    //会话列表获取
+    rpc GetChatSessionList(GetChatSessionListReq) returns (GetChatSessionListRsp);
+    //创建会话
+    rpc ChatSessionCreate(ChatSessionCreateReq) returns (ChatSessionCreateRsp);
+    //获取会话成员列表
+    rpc GetChatSessionMember(GetChatSessionMemberReq) returns (GetChatSessionMemberRsp);
+    //获取待处理的，申请自己好友的信息列表
+    rpc GetPendingFriendEventList(GetPendingFriendEventListReq) returns (GetPendingFriendEventListRsp);
+}

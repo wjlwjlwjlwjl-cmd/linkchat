@@ -1,3 +1,4 @@
+#pragma once
 // 现在用户信息，统一存放在 jwt token 中，jwt token 首先用于鉴权，后续用于传递处理用户信息
 // Get 方法参数，直接获取即可
 // Post 方法参数，如果没有文件操作，body 为 application/json

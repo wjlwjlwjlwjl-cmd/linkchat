@@ -11,6 +11,21 @@ add_custom_command(TARGET file_service_bin POST_BUILD
     $<TARGET_FILE_DIR:file_service_bin>/conf
 )
 
+add_custom_command(TARGET file_service_bin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+    ${BIN_DIR}/file_service/conf
+)
+add_custom_command(TARGET file_service_bin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    $<TARGET_FILE_DIR:file_service_bin>/conf/settings.conf
+    ${BIN_DIR}/file_service/conf
+)
+add_custom_command(TARGET file_service_bin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    $<TARGET_FILE:file_service_bin>
+    ${BIN_DIR}/file_service
+)
+
 target_include_directories(
     file_service_bin PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/src

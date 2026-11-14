@@ -8,6 +8,10 @@ find_program(ODB_COMPILER odb REQUIRED)
 set(persistent_hdr
     user_entity.h
     message_entity.h
+    chat_session.h
+    chat_session_member.h
+    friend_entity.h
+    relation.h
 )
 
 set(generated_srcs "")

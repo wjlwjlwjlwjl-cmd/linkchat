@@ -5,3 +5,4 @@ settings.conf
 .cache
 .clangd
 .clang-format
+bin

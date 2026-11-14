@@ -1,3 +1,4 @@
+#pragma once
 #include <odb/core.hxx>
 #include <odb/database.hxx>
 #include <elasticlient/client.h>

@@ -1,3 +1,4 @@
+#pragma once
 // 这里提供的都是秒为单位的过期时间，set、expire 都直接使用秒即可
 
 

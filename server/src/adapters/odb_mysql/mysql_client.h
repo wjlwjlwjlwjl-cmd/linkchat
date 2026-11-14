@@ -5,6 +5,7 @@
 
 class MysqlClient {
 public:
+    using Ptr = std::shared_ptr<odb::database>;
     /// @brief 初始化数据库连接
     /// @param user 用户名
     /// @param passwd 密码
