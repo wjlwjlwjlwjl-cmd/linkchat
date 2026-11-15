@@ -9,9 +9,11 @@
 #include "user.pb.h"
 #include "friend.pb.h"
 
-class FriendService{
+class FriendManager{
 public:
-    FriendService(FriendDao::Ptr dao, SvcDiscovery::Ptr service_discovery,
+    using Ptr = std::shared_ptr<FriendManager>;
+
+    FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_discovery,
         const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
         int timeout_ms, int max_retry
     );
@@ -22,6 +24,14 @@ public:
     ::linkchat::FriendAddRsp FriendAdd(const std::string& user_id, const std::string& respondent_id);
     ::linkchat::FriendAddProcessRsp FriendAddProcess(const std::string& notify_event_id, bool agree, 
         const std::string& apply_user_id, const std::string& user_id);
+    ::linkchat::GetPendingFriendEventListRsp GetPendingFriendEventList(const std::string& user_id);
+
+    ::linkchat::FriendSearchRsp FriendSearch(const std::string& search_key, int count);
+
+    ::linkchat::GetChatSessionListRsp GetChatSessionList(const std::string& user_id);
+    ::linkchat::ChatSessionCreateRsp ChatSessionCreate(const std::string& user_id, const std::string& chat_session_name, 
+        std::vector<std::string>& member_id_list);
+    ::linkchat::GetChatSessionMemberRsp GetChatSessionMember(const std::string& user_id, const std::string& chat_session_id);
 
 private:
     FriendDao::Ptr dao_;
@@ -35,6 +45,6 @@ private:
     int max_retry_;
 
     // user_id，user_info
-    std::optional<std::unordered_map<std::string, ::linkchat::UserInfo>> GetMultiUserInfo_(std::vector<std::string>& users_id);
+    std::unordered_map<std::string, linkchat::UserInfo> GetMultiUserInfo_(std::vector<std::string>& users_id);
     std::optional<::linkchat::UserInfo> GetUserInfo_(const std::string& user_id);
 };

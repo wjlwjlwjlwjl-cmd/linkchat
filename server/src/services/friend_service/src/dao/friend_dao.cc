@@ -181,7 +181,7 @@ FriendAddProcessDTO FriendDao::FriendAddProcess(const std::string& notify_event_
 
 GetPendingFriendEventDTO FriendDao::GetPendingFriendEventList(const std::string& user_id){
     try{
-        std::vector<std::string> event_ids;
+        std::vector<std::pair<std::string, std::string>> event_ids;
         auto transaction = MysqlClient::Transaction(db_);
 
         // 查询自己待处理的
@@ -190,7 +190,7 @@ GetPendingFriendEventDTO FriendDao::GetPendingFriendEventList(const std::string&
 
         for(auto& result: results){
             // 将所有事件 id 都取出来，在服务层拼接上 sender info
-            event_ids.push_back(result.event_id());
+            event_ids.push_back(std::make_pair(result.event_id(), result.respondent_id()));
         }
         MysqlClient::Commit(transaction);
         return {{true, ""}, event_ids};
@@ -281,7 +281,7 @@ ChatSessionCreateDTO FriendDao::CreateChatSession(const std::string& user_id, co
         }
 
         MysqlClient::Commit(transaction);
-        return {true, "", session_id, chat_session_name};
+        return {true, "", session_id};
     }
     catch(const std::exception& e){
         return {false, e.what()};

@@ -28,7 +28,7 @@ public:
                         const ::linkchat::GetUserInfoReq* request,
                         ::linkchat::GetUserInfoRsp* response,
                         ::google::protobuf::Closure* done) override;
-    virtual void GetMultiUserInfo(::google::protobuf::RpcController* controller,
+    virtual void GetMultiUserInfo(::google::protobuf::RpcController* controller, // 这个接口会尽可能返回查询出来的 UserInfo，没查出来的自动忽略
                         const ::linkchat::GetMultiUserInfoReq* request,
                         ::linkchat::GetMultiUserInfoRsp* response,
                         ::google::protobuf::Closure* done) override;

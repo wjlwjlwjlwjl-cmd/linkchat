@@ -68,7 +68,7 @@ message GetPendingFriendEventListRsp {
 //用户搜索
 message FriendSearchReq {
     string search_key = 1; //就是名称模糊匹配关键字
-    string user_id = 2;
+    int32 count = 2; // 获取几个人
 }
 message FriendSearchRsp {
     bool success = 1;
@@ -96,7 +96,6 @@ message ChatSessionCreateRsp {
     bool success = 1;
     string errmsg = 2; 
     string chat_session_id = 3;
-    string chat_session_name = 4;
 }
 
 //获取会话成员列表
