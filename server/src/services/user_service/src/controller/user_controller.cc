@@ -53,13 +53,8 @@ void UserController::GetUserInfo(::google::protobuf::RpcController* controller,
                     ::linkchat::GetUserInfoRsp* response,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
-    std::string user_id;
-    if(!JwtParse(request->token(), "user_id", user_id) || user_id.empty()){
-        response->set_success(false);
-        response->set_errmsg("token Invalid");
-        return;
-    }
-    auto info = user_manager_->GetUserInfo(user_id); // 获取 user_id 的 
+    std::string user_id = request->user_id();
+    auto info = user_manager_->GetUserInfo(user_id);
     response->set_success(true);
     response->set_errmsg("");
 

@@ -653,6 +653,7 @@ private:
         res.set_content(content, "application/json");
     }
 
+    // 这个方法对应的后端接口，只接受 user_id
     void GetUserInfo(const ::httplib::Request& req, ::httplib::Response& res){
         std::string ip;
         auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
@@ -675,7 +676,12 @@ private:
             res.status = 401;
             return;
         }
-        request.set_token(token);
+        std::string user_id;
+        if(!JwtParse(token, "user_id", user_id)){
+            res.status = 401;
+            return;
+        }
+
         ::brpc::Controller cntl;
         stub.GetUserInfo(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
@@ -725,7 +731,6 @@ private:
             res.status = 400;
             return;
         }
-        request.set_token(token);
         ::brpc::Controller cntl;
         stub.GetMultiUserInfo(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){

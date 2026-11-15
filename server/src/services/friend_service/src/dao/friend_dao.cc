@@ -95,7 +95,7 @@ GetFriendDTO FriendDao::GetFriendList(const std::string& user_id){
     }
 }
 
-CommonDTO FriendDao::FriedRemove(const std::string& user_id, const std::string& peer_id){
+CommonDTO FriendDao::FriendRemove(const std::string& user_id, const std::string& peer_id){
     CommonDTO dto;
     try{
         auto transaction = MysqlClient::Transaction(db_);

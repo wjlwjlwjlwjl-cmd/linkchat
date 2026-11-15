@@ -44,7 +44,7 @@ public:
     /// @param user_id 用户ID
     /// @param peer_id 好友ID
     /// @return CommonDTO 操作结果DTO
-    CommonDTO FriedRemove(const std::string& user_id, const std::string& peer_id);
+    CommonDTO FriendRemove(const std::string& user_id, const std::string& peer_id);
 
     /// @brief 发起好友申请，会返回通知id，网关推送给客户端，客户端处理好友申请时会携带通知id给 FriendAddProcess
     /// @param user_id 申请人 ID

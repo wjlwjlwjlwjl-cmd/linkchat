@@ -10,6 +10,7 @@ set(PROTO_FILES
     message.proto
     user.proto
     transmite.proto
+    friend.proto
 )
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
