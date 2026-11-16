@@ -292,7 +292,6 @@ GetChatSessionMemberDTO FriendDao::GetChatSessionMember(const std::string& user_
     std::vector<std::string> users_id;
     try{
         auto transaction = MysqlClient::Transaction(db_);
-        // 查询群聊成员
         using query = ::odb::query<::linkchat::ChatSessionMember>;
         auto results = db_->query<::linkchat::ChatSessionMember>(
             query::chat_session_id == chat_session_id

@@ -3,6 +3,7 @@
 #include "service_constants.h"
 #include "jwt_util.h"
 #include "base.pb.h"
+#include "friend.pb.h"
 #include <google/protobuf/util/json_util.h>
 
 namespace {
@@ -46,11 +47,26 @@ void ToProtoMessageInfo(const MessageInfo& src, ::linkchat::MessageInfo* dst) {
 } // namespace
 
 TransmiteManager::TransmiteManager(TransmiteDao::Ptr dao, 
-    const std::string& exchange, const std::string& binding_key, MqClient::Ptr mq_client){
-    dao_ = dao;
+    const std::string& exchange, const std::string& binding_key, MqClient::Ptr mq_client,
+    SvcDiscovery::Ptr svc_discovery, const std::string& etcd_server_ip,
+    const std::string& protocol, int connect_timeout_ms, int timeout_ms, int max_retry)
+    : dao_(dao)
+    , svc_discovery_(svc_discovery)
+    , etcd_server_ip_(etcd_server_ip)
+    , protocol_(protocol)
+    , connect_timeout_ms_(connect_timeout_ms)
+    , timeout_ms_(timeout_ms)
+    , max_retry_(max_retry)
+{
     exchange_ = exchange;
     binding_key_ = binding_key;
     mq_client_ = mq_client;
+
+    svc_discovery_->Watch(); // 拉取一次全部服务节点信息
+    options_.max_retry = max_retry_;
+    options_.connect_timeout_ms = connect_timeout_ms_;
+    options_.timeout_ms = timeout_ms_;
+    options_.protocol = protocol_;
 }
 
 TransmiteManager::~TransmiteManager() = default;
@@ -104,10 +120,8 @@ GetTransmitTargetDTO TransmiteManager::GetTransmitTarget(const NewMessageDTO& re
         return rsp;
     }
 
-    //todo
-    // 3. 根据 chat_session_id 这个会话所有的用户id
-    // 这部分需要到下个子服务完成数据库结构搭建，这里先跳过 
-    std::vector<std::string> target_ids;
+    // 3. 根据 chat_session_id 获取这个会话所有的用户id
+    std::vector<std::string> target_ids = GetChatSessionMembers_(user_id, req.chat_session_id);
 
     // 4. 将消息内容、会话id、发送者元信息等打包成 rsp 返回
     rsp.success = true;
@@ -115,4 +129,38 @@ GetTransmitTargetDTO TransmiteManager::GetTransmitTarget(const NewMessageDTO& re
     rsp.target_id_list = target_ids;
 
     return rsp;
+}
+
+std::vector<std::string> TransmiteManager::GetChatSessionMembers_(const std::string& user_id,
+    const std::string& chat_session_id){
+    std::vector<std::string> ret;
+
+    std::string ip;
+    auto channel = svc_discovery_->GetSvcChannel(service_name::friend_service, ip);
+    if(channel->Init(etcd_server_ip_.c_str(), &options_)){
+        LOG_ERROR("Init channel failed, ip: {}", etcd_server_ip_);
+        return ret;
+    }
+
+    ::brpc::Controller controller;
+    ::linkchat::FriendService_Stub stub(channel.get());
+    ::linkchat::GetChatSessionMemberReq request;
+    ::linkchat::GetChatSessionMemberRsp response;
+    request.set_user_id(user_id);
+    request.set_chat_session_id(chat_session_id);
+
+    stub.GetChatSessionMember(&controller, &request, &response, nullptr);
+
+    if(controller.Failed()){
+        LOG_ERROR("Failed to call friend_service: ", controller.ErrorText());
+        return ret;
+    }
+    if(!response.success()){
+        LOG_ERROR("Call friend_service fail: ", response.errmsg());
+        return ret;
+    }
+    for(auto& member: response.member_info_list()){
+        ret.push_back(member.user_id());
+    }
+    return ret;
 }

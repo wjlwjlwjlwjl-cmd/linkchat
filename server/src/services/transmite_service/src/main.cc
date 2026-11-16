@@ -3,11 +3,13 @@
 
 #include "logging/logger.h"
 #include "etcd/registry/service_registry.h"
+#include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
 #include "controller/transmite_controller.h"
 
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
 DEFINE_string(service_ip, "", "service ip");
+DEFINE_string(protocol, "", "rpc protocol");
 DEFINE_int32(connection_timeout_seconds, 10,
              "time to wait when cannot connect to brpc server");
 DEFINE_int32(idle_timeout_seconds, 5000,
@@ -54,7 +56,16 @@ int main(int argc, char* argv[]){
     TransmiteDao::Ptr dao = std::make_shared<TransmiteDao>(
         FLAGS_mysql_user.c_str(), FLAGS_mysql_passwd.c_str()
     );
-    TransmiteManager::Ptr transmite_manager = std::make_shared<TransmiteManager>(dao, FLAGS_amqp_exchange, FLAGS_amqp_binding_key, mq_client);
+
+    SvcDiscovery::ModCallback cb_online = std::function<void(const std::string&, const std::string&)>();
+    SvcDiscovery::ModCallback cb_offline = std::function<void(const std::string&, const std::string&)>();
+    SvcDiscovery::Ptr svc_discovery = std::make_shared<SvcDiscovery>(
+        FLAGS_etcd_server_ip, std::move(cb_online), std::move(cb_offline));
+
+    TransmiteManager::Ptr transmite_manager = std::make_shared<TransmiteManager>(
+        dao, FLAGS_amqp_exchange, FLAGS_amqp_binding_key, mq_client,
+        svc_discovery, FLAGS_etcd_server_ip, FLAGS_protocol,
+        FLAGS_connection_timeout_seconds * 1000, FLAGS_idle_timeout_seconds * 1000, FLAGS_max_retry);
     TransmiteController transmite_server(transmite_manager);
     if(server.AddService(&transmite_server, brpc::SERVER_DOESNT_OWN_SERVICE) != 0){
         LOG_ERROR("Fail to add service to brpc server");
