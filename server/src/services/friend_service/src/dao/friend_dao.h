@@ -25,6 +25,8 @@
 #include "chat_session-odb.hxx"
 #include "chat_session_member.h"
 #include "chat_session_member-odb.hxx"
+#include "user_entity.h"
+#include "user_entity-odb.hxx"
 
 class FriendDao {
 public:
@@ -59,7 +61,7 @@ public:
     /// @param user_id 被申请人用户ID
     /// @return FriendAddProcessDTO 好友申请处理DTO
     FriendAddProcessDTO FriendAddProcess(const std::string& notify_event_id, bool agree, 
-        const std::string& apply_user_id, const std::string& user_id, const std::string& apply_user_name);
+        const std::string& apply_user_id, const std::string& user_id);
 
     /// @brief 获取自己待处理的好友申请事件
     /// @param user_id 用户ID

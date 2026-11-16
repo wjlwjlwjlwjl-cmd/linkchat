@@ -7,7 +7,8 @@ DROP TABLE IF EXISTS `tb_chat_session_member`;
 CREATE TABLE `tb_chat_session_member` (
   `id` BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
   `chat_session_id` varchar(64) NOT NULL,
-  `user_id` varchar(64) NOT NULL)
+  `user_id` varchar(64) NOT NULL,
+  `is_del` tinyint NOT NULL)
  ENGINE=InnoDB;
 
 CREATE INDEX `chat_session_id_i`

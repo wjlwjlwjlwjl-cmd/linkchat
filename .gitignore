@@ -3,5 +3,4 @@
 build
 settings.conf
 .cache
-.clang-format
 bin

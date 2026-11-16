@@ -3,17 +3,16 @@
 #include "friend.pb.h"
 #include "user.pb.h"
 
-FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_discovery,
-    const std::string& etcd_server_ip, const std::string& protocol, int connect_timeout_ms,
-    int timeout_ms, int max_retry)
-    : dao_(dao)
-    , svc_discovery_(service_discovery)
-    , etcd_server_ip_(etcd_server_ip)
-    , protocol_(protocol)
-    , connect_timeout_ms_(connect_timeout_ms)
-    , timeout_ms_(timeout_ms)
-    , max_retry_(max_retry)
-{
+FriendManager::FriendManager(FriendDao::Ptr dao,
+                             SvcDiscovery::Ptr service_discovery,
+                             const std::string &etcd_server_ip,
+                             const std::string &protocol,
+                             int connect_timeout_ms, int timeout_ms,
+                             int max_retry)
+    : dao_(dao), svc_discovery_(service_discovery),
+      etcd_server_ip_(etcd_server_ip), protocol_(protocol),
+      connect_timeout_ms_(connect_timeout_ms), timeout_ms_(timeout_ms),
+      max_retry_(max_retry) {
     svc_discovery_->Watch(); // 拉取一次全部服务节点信息
     options_.max_retry = max_retry_;
     options_.connect_timeout_ms = connect_timeout_ms_;
@@ -21,11 +20,12 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
     options_.protocol = protocol_;
 }
 
-::linkchat::GetFriendListRsp FriendManager::GetFriendList(const std::string& user_id){
+::linkchat::GetFriendListRsp
+FriendManager::GetFriendList(const std::string &user_id) {
     ::linkchat::GetFriendListRsp response;
     auto dto = dao_->GetFriendList(user_id);
-    if(!dto.success){
-        LOG_ERROR("get friend list failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("get friend list failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("get friend list failed");
         return response;
@@ -33,25 +33,27 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
 
     auto friends_id = dto.friend_ids;
     auto friends_info = GetMultiUserInfo_(friends_id);
-    if(friends_info.size() != friends_id.size()) 
-        LOG_ERROR("INFO of some users failed to select, {}, {}", friends_info.size(), friends_id.size());
+    if (friends_info.size() != friends_id.size())
+        LOG_INFO("INFO of some users failed to select, {}, {}",
+                 friends_info.size(), friends_id.size());
 
     std::vector<::linkchat::UserInfo> infos;
     std::transform(friends_info.begin(), friends_info.end(),
-        std::back_inserter(infos), [&](const auto& kv){
-        return kv.second;
-    });
+                   std::back_inserter(infos),
+                   [&](const auto &kv) { return kv.second; });
     response.mutable_friend_list()->Add(infos.begin(), infos.end());
 
     response.set_success(true);
     return response;
 }
 
-::linkchat::FriendRemoveRsp FriendManager::FriendRemove(const std::string& user_id, const std::string& peer_id){
+::linkchat::FriendRemoveRsp
+FriendManager::FriendRemove(const std::string &user_id,
+                            const std::string &peer_id) {
     ::linkchat::FriendRemoveRsp response;
     auto dto = dao_->FriendRemove(user_id, peer_id);
-    if(!dto.success){
-        LOG_ERROR("remove friend failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("remove friend failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("remove friend failed");
         return response;
@@ -60,13 +62,15 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
     return response;
 }
 
-::linkchat::FriendAddRsp FriendManager::FriendAdd(const std::string& user_id, const std::string& respondent_id){
+::linkchat::FriendAddRsp
+FriendManager::FriendAdd(const std::string &user_id,
+                         const std::string &respondent_id) {
     ::linkchat::FriendAddRsp response;
     auto dto = dao_->FriendAdd(user_id, respondent_id);
-    if(!dto.success){
-        LOG_ERROR("add friend failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("add friend failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("add friend failed");
+        response.set_errmsg(dto.errmsg);
         return response;
     }
     response.set_success(true);
@@ -74,72 +78,74 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
     return response;
 }
 
-::linkchat::FriendAddProcessRsp FriendManager::FriendAddProcess(const std::string& notify_event_id, bool agree, 
-    const std::string& apply_user_id, const std::string& user_id){
+::linkchat::FriendAddProcessRsp
+FriendManager::FriendAddProcess(const std::string &notify_event_id, bool agree,
+                                const std::string &apply_user_id,
+                                const std::string &user_id) {
     ::linkchat::FriendAddProcessRsp response;
 
     // 这里还需要获取 apply_user_name 作为单聊会话名称
     auto user_info = GetUserInfo_(user_id);
-    if(!user_info.has_value()){
+    if (!user_info.has_value()) {
         response.set_success(false);
         response.set_errmsg("user not found");
         return response;
     }
     std::string apply_user_name = user_info.value().nickname();
 
-    auto dto = dao_->FriendAddProcess(notify_event_id, agree, apply_user_id, user_id, apply_user_name);
-    if(!dto.success){
-        LOG_ERROR("friend add process failed: ", dto.errmsg);
+    auto dto =
+        dao_->FriendAddProcess(notify_event_id, agree, apply_user_id, user_id);
+    if (!dto.success) {
+        LOG_INFO("friend add process failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("friend add process failed");
         return response;
     }
     response.set_success(true);
-    if(agree){
+    if (agree) {
         response.set_new_session_id(dto.new_session_id);
     }
     return response;
 }
 
-::linkchat::GetPendingFriendEventListRsp FriendManager::GetPendingFriendEventList(const std::string& user_id){
+::linkchat::GetPendingFriendEventListRsp
+FriendManager::GetPendingFriendEventList(const std::string &user_id) {
     ::linkchat::GetPendingFriendEventListRsp response;
     auto dto = dao_->GetPendingFriendEventList(user_id);
-    if(!dto.success){
-        LOG_ERROR("get pending friend event list failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("get pending friend event list failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("get pending friend event list failed");
         return response;
     }
     auto ev_resp_list = dto.ev_resp_list;
 
-    std::vector<std::string> respondents_id;
-    for(auto& [event_id, respondent_id]: ev_resp_list){
-        respondents_id.push_back(respondent_id);
-    }
-
-    auto respondents_info = GetMultiUserInfo_(respondents_id);
-    if(respondents_info.size() != respondents_id.size()) 
-        LOG_ERROR("INFO of some users failed to select, {}, {}", respondents_info.size(), respondents_id.size());
-
+    std::vector<std::string> apply_user_id;
     std::vector<::linkchat::FriendEvent> events;
-    std::transform(respondents_info.begin(), respondents_info.end(),
-        std::back_inserter(events), [&](const auto& kv){
-            ::linkchat::FriendEvent event;
-            event.set_event_id(kv.first);
-            event.mutable_sender()->CopyFrom(kv.second);
-            return event;
-    });
+
+    for (auto &[event_id, user_id] : ev_resp_list) {
+        auto user_info = GetUserInfo_(user_id);
+        if (!user_info.has_value()) {
+            LOG_INFO("user not found, user_id: {}", user_id);
+            continue;
+        }
+        ::linkchat::FriendEvent friend_event;
+        friend_event.set_event_id(event_id);
+        friend_event.mutable_sender()->CopyFrom(user_info.value());
+        events.push_back(friend_event);
+    }
 
     response.mutable_event()->Add(events.begin(), events.end());
     response.set_success(true);
     return response;
 }
 
-::linkchat::FriendSearchRsp FriendManager::FriendSearch(const std::string& search_key, int count){
+::linkchat::FriendSearchRsp
+FriendManager::FriendSearch(const std::string &search_key, int count) {
     ::linkchat::FriendSearchRsp response;
     auto dto = dao_->FriendSearch(search_key, count);
-    if(!dto.success){
-        LOG_ERROR("friend search failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("friend search failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("friend search failed");
         return response;
@@ -147,10 +153,10 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
 
     std::vector<std::string> users_id = dto.users_id;
     std::vector<::linkchat::UserInfo> user_infos;
-    for(auto& user_id: users_id){
+    for (auto &user_id : users_id) {
         auto user_info = GetUserInfo_(user_id);
-        if(!user_info.has_value()){
-            LOG_ERROR("user not found, user_id: {}", user_id);
+        if (!user_info.has_value()) {
+            LOG_INFO("user not found, user_id: {}", user_id);
             continue;
         }
         user_infos.push_back(user_info.value());
@@ -162,76 +168,106 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
     return response;
 }
 
-::linkchat::GetChatSessionListRsp FriendManager::GetChatSessionList(const std::string& user_id){
+::linkchat::GetChatSessionListRsp
+FriendManager::GetChatSessionList(const std::string &user_id) {
     ::linkchat::GetChatSessionListRsp response;
 
     auto dto = dao_->GetChatSession(user_id);
-    if(!dto.success){
-        LOG_ERROR("get chat session list failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("get chat session list failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("get chat session list failed");
         return response;
     }
 
     std::vector<::linkchat::ChatSessionInfo> infos;
-    std::transform(dto.chat_sessions.begin(), dto.chat_sessions.end(),
-        std::back_inserter(infos), [&](const auto& chat_session){
-            ::linkchat::ChatSessionInfo info;
+    infos.reserve(infos.size() + dto.chat_sessions.size());
 
-            if(chat_session.single_chat_friend_id.has_value()){
-                info.set_single_chat_friend_id(chat_session.single_chat_friend_id.value());
+    for (const auto &chat_session : dto.chat_sessions) {
+        ::linkchat::ChatSessionInfo info;
+
+        if (chat_session.single_chat_friend_id.has_value()) {
+            info.set_single_chat_friend_id(
+                chat_session.single_chat_friend_id.value());
+
+            // 补全单聊会话名称和头像
+            auto friend_user =
+                GetUserInfo_(chat_session.single_chat_friend_id.value());
+            if (!friend_user.has_value()) {
+                LOG_INFO("friend not found, friend_id: {}",
+                         chat_session.single_chat_friend_id.value());
+                continue; // 【关键点】直接跳过当前循环，相当于过滤掉了这个元素
             }
-            info.set_chat_session_id(chat_session.chat_session_id);
-            info.set_chat_session_name(chat_session.chat_session_name);
-            info.set_avatar(chat_session.avatar);
+            info.set_chat_session_name(friend_user.value().nickname());
+            info.set_avatar(friend_user.value().avatar());
+        }
 
-            if(chat_session.prev_message.has_value()){
-                ::linkchat::MessageInfo prev_message;
+        info.set_chat_session_id(chat_session.chat_session_id);
 
-                ::linkchat::UserInfo sender;
-                sender.set_user_id(chat_session.prev_message.value().sender.user_id);
-                sender.set_nickname(chat_session.prev_message.value().sender.nickname);
-                sender.set_description(chat_session.prev_message.value().sender.description);
-                sender.set_email(chat_session.prev_message.value().sender.email);
-                sender.set_avatar(chat_session.prev_message.value().sender.avatar);
-                prev_message.mutable_sender()->CopyFrom(sender);
+        if (chat_session.prev_message.has_value()) {
+            ::linkchat::MessageInfo prev_message;
 
-                ::linkchat::MessageContent message_content;
-                if(chat_session.prev_message.value().message.message_type == MessageType::STRING){
-                    message_content.set_message_type(::linkchat::MessageType::STRING);
-                    message_content.mutable_string_message()->set_content(chat_session.prev_message.value().message.string_message->content);
-                }else{
-                    message_content.set_message_type(::linkchat::MessageType::FILE);
+            // 构建 sender
+            ::linkchat::UserInfo sender;
+            sender.set_user_id(
+                chat_session.prev_message.value().sender.user_id);
+            sender.set_nickname(
+                chat_session.prev_message.value().sender.nickname);
+            sender.set_description(
+                chat_session.prev_message.value().sender.description);
+            sender.set_email(chat_session.prev_message.value().sender.email);
+            sender.set_avatar(chat_session.prev_message.value().sender.avatar);
+            prev_message.mutable_sender()->CopyFrom(sender);
 
-                    auto file_msg = chat_session.prev_message.value().message.file_message.value();
-                    ::linkchat::FileMessageInfo file_message;
-                    file_message.set_file_id(file_msg.file_id.value());
-                    file_message.set_file_name(file_msg.file_name.value());
-                    file_message.set_file_size(file_msg.file_size.value());
-                    message_content.mutable_file_message()->CopyFrom(file_message);
-                }
-                prev_message.mutable_message()->CopyFrom(message_content);
-
-                prev_message.set_message_id(chat_session.prev_message.value().message_id);
-                prev_message.set_chat_session_id(chat_session.prev_message.value().chat_session_id);
-
-                info.mutable_prev_message()->CopyFrom(prev_message);
+            // 构建 message_content
+            ::linkchat::MessageContent message_content;
+            if (chat_session.prev_message.value().message.message_type ==
+                MessageType::STRING) {
+                message_content.set_message_type(
+                    ::linkchat::MessageType::STRING);
+                message_content.mutable_string_message()->set_content(
+                    chat_session.prev_message.value()
+                        .message.string_message->content);
+            } else {
+                message_content.set_message_type(::linkchat::MessageType::FILE);
+                auto file_msg = chat_session.prev_message.value()
+                                    .message.file_message.value();
+                ::linkchat::FileMessageInfo file_message;
+                file_message.set_file_id(file_msg.file_id.value());
+                file_message.set_file_name(file_msg.file_name.value());
+                file_message.set_file_size(file_msg.file_size.value());
+                message_content.mutable_file_message()->CopyFrom(file_message);
             }
-            return info;
-    });
+            prev_message.mutable_message()->CopyFrom(message_content);
+
+            prev_message.set_message_id(
+                chat_session.prev_message.value().message_id);
+            prev_message.set_chat_session_id(
+                chat_session.prev_message.value().chat_session_id);
+
+            info.mutable_prev_message()->CopyFrom(prev_message);
+        }
+
+        // 成功走到这里，才真正加入结果集
+        infos.push_back(std::move(info));
+    }
+
     response.mutable_chat_session_info_list()->Add(infos.begin(), infos.end());
 
     response.set_success(true);
     return response;
 }
 
-::linkchat::ChatSessionCreateRsp FriendManager::ChatSessionCreate(const std::string& user_id, const std::string& chat_session_name, 
-    std::vector<std::string>& member_id_list){
+::linkchat::ChatSessionCreateRsp
+FriendManager::ChatSessionCreate(const std::string &user_id,
+                                 const std::string &chat_session_name,
+                                 std::vector<std::string> &member_id_list) {
     ::linkchat::ChatSessionCreateRsp response;
 
-    auto dto = dao_->CreateChatSession(user_id, chat_session_name, member_id_list);
-    if(!dto.success){
-        LOG_ERROR("create chat session failed: ", dto.errmsg);
+    auto dto =
+        dao_->CreateChatSession(user_id, chat_session_name, member_id_list);
+    if (!dto.success) {
+        LOG_INFO("create chat session failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("create chat session failed");
         return response;
@@ -241,11 +277,13 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
     return response;
 }
 
-::linkchat::GetChatSessionMemberRsp FriendManager::GetChatSessionMember(const std::string& user_id, const std::string& chat_session_id){
+::linkchat::GetChatSessionMemberRsp
+FriendManager::GetChatSessionMember(const std::string &user_id,
+                                    const std::string &chat_session_id) {
     ::linkchat::GetChatSessionMemberRsp response;
     auto dto = dao_->GetChatSessionMember(user_id, chat_session_id);
-    if(!dto.success){
-        LOG_ERROR("get chat session member failed: ", dto.errmsg);
+    if (!dto.success) {
+        LOG_INFO("get chat session member failed: {}", dto.errmsg);
         response.set_success(false);
         response.set_errmsg("get chat session member failed");
         return response;
@@ -254,10 +292,11 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
     // 在这里获取 user_info 信息
     auto user_infos = GetMultiUserInfo_(dto.members_id);
     std::vector<::linkchat::UserInfo> member_infos;
-    for(auto& e: user_infos){
+    for (auto &e : user_infos) {
         member_infos.push_back(e.second);
     }
-    response.mutable_member_info_list()->Add(member_infos.begin(), member_infos.end());
+    response.mutable_member_info_list()->Add(member_infos.begin(),
+                                             member_infos.end());
     response.set_success(true);
 
     return response;
@@ -266,17 +305,18 @@ FriendManager::FriendManager(FriendDao::Ptr dao, SvcDiscovery::Ptr service_disco
 //////////////////////////////////////////
 /// 私有方法
 //////////////////////////////////////////
-std::unordered_map<std::string, ::linkchat::UserInfo> 
-    FriendManager::GetMultiUserInfo_(std::vector<std::string>& users_id){
+std::unordered_map<std::string, ::linkchat::UserInfo>
+FriendManager::GetMultiUserInfo_(std::vector<std::string> &users_id) {
 
     std::string ip;
-    auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
-    if(ip.empty()){
-        LOG_ERROR("No nodes available for {}", service_name::user_service);
+    auto channel =
+        svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+    if (ip.empty()) {
+        LOG_INFO("No nodes available for {}", service_name::user_service);
         return {};
     }
-    if(channel->Init(ip.c_str(), &options_)){
-        LOG_ERROR("Init channel failed, ip: {}", ip);
+    if (channel->Init(ip.c_str(), &options_)) {
+        LOG_INFO("Init channel failed, ip: {}", ip);
         return {};
     }
 
@@ -290,29 +330,32 @@ std::unordered_map<std::string, ::linkchat::UserInfo>
 
     stub.GetMultiUserInfo(&controller, &request, &response, nullptr);
 
-    if(controller.Failed()){
-        LOG_ERROR("Failed to call user_service: ", controller.ErrorText());
+    if (controller.Failed()) {
+        LOG_ERROR("Failed to call user_service: {}", controller.ErrorText());
         return {};
     }
-    if(!response.success()){ // 实际上 user_service 会尽可能返回查询出来的 UserInfo，没查出来的自动忽略，这里总会是 true
-        LOG_ERROR("Call user_service fail: ", response.errmsg());
+    if (!response.success()) { // 实际上 user_service 会尽可能返回查询出来的
+                               // UserInfo，没查出来的自动忽略，这里总会是 true
+        LOG_INFO("Call user_service fail: {}", response.errmsg());
         return {};
     }
-    for(auto& e: response.users_info()){
+    for (auto &e : response.users_info()) {
         ret[e.first] = e.second;
     }
     return ret;
 }
 
-std::optional<::linkchat::UserInfo> FriendManager::GetUserInfo_(const std::string& user_id){
+std::optional<::linkchat::UserInfo>
+FriendManager::GetUserInfo_(const std::string &user_id) {
     std::string ip;
-    auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
-    if(ip.empty()){
-        LOG_ERROR("No nodes available for {}", service_name::user_service);
+    auto channel =
+        svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+    if (ip.empty()) {
+        LOG_INFO("No nodes available for {}", service_name::user_service);
         return {};
     }
-    if(channel->Init(ip.c_str(), &options_)){
-        LOG_ERROR("Init channel failed, ip: {}", ip);
+    if (channel->Init(ip.c_str(), &options_)) {
+        LOG_INFO("Init channel failed, ip: {}", ip);
         return {};
     }
 
@@ -322,12 +365,12 @@ std::optional<::linkchat::UserInfo> FriendManager::GetUserInfo_(const std::strin
     ::linkchat::GetUserInfoRsp response;
     request.set_user_id(user_id);
     stub.GetUserInfo(&controller, &request, &response, nullptr);
-    if(controller.Failed()){
-        LOG_ERROR("Failed to call user_service: ", controller.ErrorText());
+    if (controller.Failed()) {
+        LOG_ERROR("Failed to call user_service: {}", controller.ErrorText());
         return std::nullopt;
     }
-    if(!response.success()){
-        LOG_ERROR("Call user_service fail: ", response.errmsg());
+    if (!response.success()) {
+        LOG_INFO("Call user_service fail: {}", response.errmsg());
         return std::nullopt;
     }
     return response.user_info();

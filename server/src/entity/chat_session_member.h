@@ -10,7 +10,7 @@ class ChatSessionMember {
 public:
     ChatSessionMember() {}
     ChatSessionMember(const std::string &ssid, const std::string &uid)
-        : chat_session_id_(ssid), user_id_(uid) {}
+        : chat_session_id_(ssid), user_id_(uid), is_del_(0) {}
     ~ChatSessionMember() {}
 
     const std::string &chat_session_id() const { return chat_session_id_; }
@@ -18,6 +18,9 @@ public:
 
     const std::string &user_id() const { return user_id_; }
     void set_user_id(const std::string &v) { user_id_ = v; }
+
+    const bool is_del() const { return is_del_ == 1; }
+    void set_is_del(bool v) { is_del_ = v == true ? 1 : 0; }
 
 private:
     friend class odb::access;
@@ -29,5 +32,8 @@ private:
 
     #pragma db type("varchar(64)")
     std::string user_id_; // 用户 id
+
+    #pragma db type("tinyint")
+    int is_del_; // 是否删除，0 未删除，1 已删除
 };
 }

@@ -111,22 +111,30 @@ message GetChatSessionMemberRsp {
 
 //好友服务
 service FriendService {
-    //获取好友列表
+    //获取好友列表 done
     rpc GetFriendList(GetFriendListReq) returns (GetFriendListRsp);
-    //好友删除
+
+    //好友删除 done
     rpc FriendRemove(FriendRemoveReq) returns (FriendRemoveRsp);
-    //添加好友--发送好友申请
+
+    //添加好友--发送好友申请 done
     rpc FriendAdd(FriendAddReq) returns (FriendAddRsp);
-    //好友申请的处理
+
+    //好友申请的处理 done
     rpc FriendAddProcess(FriendAddProcessReq) returns (FriendAddProcessRsp);
-    //在所有用户中搜索，发送好友申请
+
+    //在所有用户中搜索，发送好友申请 done
     rpc FriendSearch(FriendSearchReq) returns (FriendSearchRsp);
+
     //会话列表获取
     rpc GetChatSessionList(GetChatSessionListReq) returns (GetChatSessionListRsp);
-    //创建会话
+
+    //创建群聊
     rpc ChatSessionCreate(ChatSessionCreateReq) returns (ChatSessionCreateRsp);
-    //获取会话成员列表
+
+    //获取群聊成员列表
     rpc GetChatSessionMember(GetChatSessionMemberReq) returns (GetChatSessionMemberRsp);
-    //获取待处理的，申请自己好友的信息列表
+
+    //获取待处理的，申请自己好友的信息列表 done
     rpc GetPendingFriendEventList(GetPendingFriendEventListReq) returns (GetPendingFriendEventListRsp);
 }

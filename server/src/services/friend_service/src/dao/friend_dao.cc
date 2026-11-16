@@ -4,6 +4,7 @@
 #include "message_entity.h"
 #include "message_entity-odb.hxx"
 #include <odb/query.hxx>
+#include <set>
 
 namespace {
 
@@ -108,6 +109,27 @@ CommonDTO FriendDao::FriendRemove(const std::string& user_id, const std::string&
         long long unsigned count = db_->erase_query<::linkchat::RelationEntity>
             (query::user_id == user_id && query::peer_id == peer_id);
 
+        // 删除时，将 user_id 与 peer_id 的单聊会话中，user_id 自己的成员记录的 is_del_ 置为 1
+        using single_query = ::odb::query<::linkchat::SingleChatSession>;
+        auto single_session = db_->query_one<::linkchat::SingleChatSession>(
+            single_query::css::chat_session_type == ::linkchat::ChatSessionType::SINGLE &&
+            single_query::csm1::user_id == user_id &&
+            single_query::csm2::user_id == peer_id);
+
+        if(single_session){
+            std::string chat_session_id = single_session->chat_session_id;
+
+            using member_query = ::odb::query<::linkchat::ChatSessionMember>;
+            auto chat_session_member = db_->query_one<::linkchat::ChatSessionMember>(
+                member_query::chat_session_id == chat_session_id &&
+                member_query::user_id == user_id
+            );
+            if(chat_session_member){
+                chat_session_member->set_is_del(true);
+                db_->update(*chat_session_member);
+            }
+        }
+
         MysqlClient::Commit(transaction);
         return {true, ""};
     }
@@ -120,6 +142,20 @@ FriendAddDTO FriendDao::FriendAdd(const std::string& user_id, const std::string&
     try{
         auto transaction = MysqlClient::Transaction(db_);
         std::string event_id = service_prefix::friend_apply_prefix + random_util::GetInstanceId();
+
+        auto respondent = db_->query_one<::linkchat::User>(::odb::query<::linkchat::User>::user_id == respondent_id);
+        if(!respondent){
+            return {false, "好友不存在", ""};
+        }
+
+        // 已经是好友关系，直接失败返回
+        using relation_query = ::odb::query<::linkchat::RelationEntity>;
+        auto relation = db_->query_one<::linkchat::RelationEntity>(
+            relation_query::user_id == user_id && relation_query::peer_id == respondent_id);
+        if(relation){
+            return {false, "已经是好友关系", ""};
+        }
+
         ::linkchat::FriendApply apply(event_id, user_id, respondent_id);
         db_->persist(apply);
         MysqlClient::Commit(transaction);
@@ -131,7 +167,7 @@ FriendAddDTO FriendDao::FriendAdd(const std::string& user_id, const std::string&
 }
 
 FriendAddProcessDTO FriendDao::FriendAddProcess(const std::string& notify_event_id, bool agree, 
-    const std::string& apply_user_id, const std::string& user_id, const std::string& apply_user_name){
+    const std::string& apply_user_id, const std::string& respondent_id){
     try{
         auto transaction = MysqlClient::Transaction(db_);
         using query = ::odb::query<::linkchat::FriendApply>;
@@ -152,22 +188,89 @@ FriendAddProcessDTO FriendDao::FriendAddProcess(const std::string& notify_event_
         try{
             auto transaction = MysqlClient::Transaction(db_);
 
-            // 创建好友关系
-            ::linkchat::RelationEntity relation(user_id, apply_user_id);
-            db_->persist(relation);
+            // 创建好友关系，好友关系是双向的（已存在的方向不重复插入）
+            using relation_query = ::odb::query<::linkchat::RelationEntity>;
+            auto relation1 = db_->query_one<::linkchat::RelationEntity>(
+                relation_query::user_id == respondent_id && relation_query::peer_id == apply_user_id);
+            if(!relation1){
+                ::linkchat::RelationEntity new_relation1(respondent_id, apply_user_id);
+                db_->persist(new_relation1);
+            }
+            auto relation2 = db_->query_one<::linkchat::RelationEntity>(
+                relation_query::user_id == apply_user_id && relation_query::peer_id == respondent_id);
+            if(!relation2){
+                ::linkchat::RelationEntity new_relation2(apply_user_id, respondent_id);
+                db_->persist(new_relation2);
+            }
 
-            std::string chat_session_id = service_prefix::chat_session_single_prefix + random_util::GetInstanceId();
+            // 查询双方是否已经存在单聊会话（不区分 is_del_，删除后重新添加需要复用原会话）
+            using member_query = ::odb::query<::linkchat::ChatSessionMember>;
+            std::set<std::string> apply_user_sessions;
+            {
+                auto apply_members = db_->query<::linkchat::ChatSessionMember>(
+                    member_query::user_id == apply_user_id);
+                for(auto& member: apply_members){
+                    apply_user_sessions.insert(member.chat_session_id());
+                }
+            }
 
-            // 创建单聊会话元信息
-            ::linkchat::ChatSession session(chat_session_id, apply_user_name, 
-                ::linkchat::ChatSessionType::SINGLE);
-            db_->persist(session);
+            // 先收集双方共同的会话 id，避免在遍历结果时嵌套查询
+            std::vector<std::string> common_session_ids;
+            {
+                auto respondent_members = db_->query<::linkchat::ChatSessionMember>(
+                    member_query::user_id == respondent_id);
+                for(auto& member: respondent_members){
+                    if(apply_user_sessions.count(member.chat_session_id()) != 0){
+                        common_session_ids.push_back(member.chat_session_id());
+                    }
+                }
+            }
 
-            // 创建单聊会话关系
-            ::linkchat::ChatSessionMember member_user(chat_session_id, user_id);
-            ::linkchat::ChatSessionMember member_apply_user(chat_session_id, user_id);
-            db_->persist(member_user);
-            db_->persist(member_apply_user);
+            // 只复用单聊会话，群聊不算
+            using session_query = ::odb::query<::linkchat::ChatSession>;
+            std::string chat_session_id;
+            for(auto& session_id: common_session_ids){
+                auto session = db_->query_one<::linkchat::ChatSession>(
+                    session_query::chat_session_id == session_id);
+                if(session && session->chat_session_type() == ::linkchat::ChatSessionType::SINGLE){
+                    chat_session_id = session_id;
+                    break;
+                }
+            }
+
+            if(!chat_session_id.empty()){
+                // 会话已存在，只将双方成员记录的 is_del_ 置为 0，不新增记录
+                auto member_respondent_user = db_->query_one<::linkchat::ChatSessionMember>(
+                    member_query::chat_session_id == chat_session_id &&
+                    member_query::user_id == respondent_id);
+                if(member_respondent_user && member_respondent_user->is_del()){
+                    member_respondent_user->set_is_del(false);
+                    db_->update(*member_respondent_user);
+                }
+
+                auto member_apply_user = db_->query_one<::linkchat::ChatSessionMember>(
+                    member_query::chat_session_id == chat_session_id &&
+                    member_query::user_id == apply_user_id);
+                if(member_apply_user && member_apply_user->is_del()){
+                    member_apply_user->set_is_del(false);
+                    db_->update(*member_apply_user);
+                }
+            }
+            else{
+                chat_session_id = service_prefix::chat_session_single_prefix + random_util::GetInstanceId();
+
+                // 创建单聊会话元信息，单聊会话不需要会话名称
+                ::linkchat::ChatSession session;
+                session.set_chat_session_id(chat_session_id);
+                session.set_chat_session_type(::linkchat::ChatSessionType::SINGLE);
+                db_->persist(session);
+
+                // 创建单聊会话关系
+                ::linkchat::ChatSessionMember member_respondent_user(chat_session_id, respondent_id);
+                ::linkchat::ChatSessionMember member_apply_user(chat_session_id, apply_user_id);
+                db_->persist(member_respondent_user);
+                db_->persist(member_apply_user);
+            }
 
             MysqlClient::Commit(transaction);
             return {true, "", chat_session_id};
@@ -190,7 +293,7 @@ GetPendingFriendEventDTO FriendDao::GetPendingFriendEventList(const std::string&
 
         for(auto& result: results){
             // 将所有事件 id 都取出来，在服务层拼接上 sender info
-            event_ids.push_back(std::make_pair(result.event_id(), result.respondent_id()));
+            event_ids.push_back(std::make_pair(result.event_id(), result.user_id())); // 这里放的是申请人的userid
         }
         MysqlClient::Commit(transaction);
         return {{true, ""}, event_ids};
@@ -228,13 +331,13 @@ GetChatSessionDTO FriendDao::GetChatSession(const std::string& user_id){
         auto single_rows = db_->query<::linkchat::SingleChatSession>(
             single_query::css::chat_session_type == ::linkchat::ChatSessionType::SINGLE &&
             single_query::csm1::user_id == user_id &&
-            single_query::csm2::user_id != single_query::csm1::user_id); //当前用户，且非自己
+            single_query::csm2::user_id != single_query::csm1::user_id); //当前用户，且非自己，视图会自动筛选掉 is_del_ == 1
 
         for(const auto& row : single_rows){
             ChatSessionInfo info;
             info.chat_session_id = row.chat_session_id;
             info.single_chat_friend_id = row.friend_id;
-            // 单聊名称/头像需后续通过 user 服务补全
+            // 单聊名称/头像在 service 层中通过 rpc 补全
             FillPrevMessage(*db_, info);
             dto.chat_sessions.push_back(std::move(info));
         }
