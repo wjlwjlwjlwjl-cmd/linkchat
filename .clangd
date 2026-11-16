@@ -1,0 +1,7 @@
+Diagnostics:
+  # 1. 关闭包含检查（解决 Included header ... is not used directly）
+  UnusedIncludes: None
+  
+  # 2. 抑制特定诊断警告（解决 too few arguments provided to function-like macro invocation）
+  Suppress:
+    - too_few_args_in_macro_invoc
