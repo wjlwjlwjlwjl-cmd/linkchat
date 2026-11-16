@@ -24,7 +24,7 @@ foreach(header ${persistent_hdr})
     set(gen_cxx ${CMAKE_CURRENT_BINARY_DIR}/${base}-odb.cxx)
     set(gen_hxx ${CMAKE_CURRENT_BINARY_DIR}/${base}-odb.hxx)
     set(gen_sql ${CMAKE_CURRENT_BINARY_DIR}/${base}.sql)
-    set(dst_sql ${CMAKE_CURRENT_SOURCE_DIR}/sql/${base}.sql)
+    set(dst_sql ${CMAKE_SOURCE_DIR}/sql/${base}.sql)
 
     add_custom_command(
         OUTPUT ${gen_cxx} ${gen_hxx} ${gen_sql}
@@ -41,10 +41,10 @@ foreach(header ${persistent_hdr})
 
     add_custom_command(
         OUTPUT ${dst_sql}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/sql
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/sql
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${gen_sql} ${dst_sql}
         DEPENDS ${gen_sql}
-        COMMENT "Copying ${base}.sql to entity/sql"
+        COMMENT "Copying ${base}.sql to ${CMAKE_SOURCE_DIR}/sql"
     )
 
     list(APPEND copied_sqls ${dst_sql})

@@ -7,7 +7,7 @@
 #include <string>
 
 namespace linkchat {
-#pragma db object table("relation")
+#pragma db object table("tb_relation")
 class RelationEntity {
   public:
     RelationEntity() {}

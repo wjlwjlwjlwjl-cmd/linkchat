@@ -7,11 +7,11 @@ UserDao::UserDao(const char *user, const char *passwd, const char *db_name, cons
     db_ = MysqlClient::Create(user, passwd, db_name, host, port, connection_pool_size);
 }
 
-std::string UserDao::Register(const std::string &nickname, const std::string& user_id,
+std::string UserDao::Register(const std::string &nickname, std::string& user_id,
     const std::string &password, const std::string &email){
     try {
         auto transaction = MysqlClient::Transaction(db_);
-        std::string user_id = "user" + random_util::GetInstanceId();
+        user_id = "user" + random_util::GetInstanceId();
 
         ::linkchat::User user;
         user.set_user_id(user_id);

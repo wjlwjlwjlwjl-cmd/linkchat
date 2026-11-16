@@ -104,11 +104,6 @@ GetTransmitTargetDTO TransmiteManager::GetTransmitTarget(const NewMessageDTO& re
 
     // 队列的声明操作放到 main 函数中，这里直接发送
     // 对齐交换机、队列等
-    // --amqp_broker=amqp://admin:123456@rabbitmq-service:5672
-    // --amqp_exchange=msg_exchange
-    // --amqp_exchange_type=direct
-    // --amqp_queue=msg_queue
-    // --amqp_binding_key=msg_key
     ::linkchat::MessageInfo proto_message;
     ToProtoMessageInfo(message_info, &proto_message);
     std::string content;
@@ -137,8 +132,12 @@ std::vector<std::string> TransmiteManager::GetChatSessionMembers_(const std::str
 
     std::string ip;
     auto channel = svc_discovery_->GetSvcChannel(service_name::friend_service, ip);
-    if(channel->Init(etcd_server_ip_.c_str(), &options_)){
-        LOG_ERROR("Init channel failed, ip: {}", etcd_server_ip_);
+    if(ip.empty()){
+        LOG_ERROR("No nodes available for {}", service_name::friend_service);
+        return ret;
+    }
+    if(channel->Init(ip.c_str(), &options_)){
+        LOG_ERROR("Init channel failed, ip: {}", ip);
         return ret;
     }
 

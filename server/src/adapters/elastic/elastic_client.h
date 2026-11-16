@@ -97,15 +97,17 @@ public:
         return "";
     }
 
-    /// @brief 精确查询 + 模糊匹配
+    /// @brief 精确查询 + 模糊匹配 + 通配符查询
     /// @param terms 精确查询字段 + 值
     /// @param matches 模糊匹配字段 + 值
+    /// @param wildcards 通配符查询字段 + 值（自动在值两侧补 *，用于子串模糊匹配）
     /// @return 结果 json 
     inline Value SelectTermAndMatch(
         std::vector<std::pair<std::string, std::string>>& terms, 
-        std::vector<std::pair<std::string, std::string>>& matches
+        std::vector<std::pair<std::string, std::string>>& matches,
+        std::vector<std::pair<std::string, std::string>> wildcards = {}
     ) {
-        if(terms.empty() || matches.empty()){
+        if(terms.empty() && matches.empty() && wildcards.empty()){
             return Value();
         }
         Value root;
@@ -121,6 +123,12 @@ public:
             if(key.empty() || val.empty()) continue;
             Value item;
             item["match"][key] = val;
+            must_array.append(item);
+        }
+        for(auto& [key, val]: wildcards){
+            if(key.empty() || val.empty()) continue;
+            Value item;
+            item["wildcard"][key] = "*" + val + "*";
             must_array.append(item);
         }
         root["query"]["bool"]["must"] = must_array;
@@ -152,6 +160,24 @@ public:
             return "";
         }
         return hit["_id"].asString();
+    }
+
+    /// @brief 取第 index 条命中文档 _source 中的字符串字段（如 user_id）
+    inline std::string SourceField(const Value& raw, int index, const std::string& field) {
+        Value hits = raw["hits"]["hits"];
+        if (!hits.isArray() || hits.size() <= index) {
+            return "";
+        }
+
+        const Json::Value& hit = hits[index];
+        if (!hit.isObject() || !hit.isMember("_source")) {
+            return "";
+        }
+        const Json::Value& source = hit["_source"];
+        if (!source.isObject() || !source.isMember(field) || !source[field].isString()) {
+            return "";
+        }
+        return source[field].asString();
     }
 
     inline void Remove(const std::string& id) {

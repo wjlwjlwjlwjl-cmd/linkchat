@@ -23,12 +23,12 @@ inline const char* GetCurrentFilename(const char* file) {
 
 // __FILE__ 和 __LINE__ 必须在调用处展开，不能在头文件中提前展开，
 // 否则所有日志都会显示 logger.h 以及宏定义所在的行号。
-#define LOG_TRACE(format, ...) g_logger->trace("[{}: {}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#define LOG_DEBUG(format, ...) g_logger->debug("[{}: {}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#define LOG_INFO(format, ...) g_logger->info("[{}: {}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#define LOG_WARN(format, ...) g_logger->warn("[{}: {}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#define LOG_ERROR(format, ...) g_logger->error("[{}: {}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#define LOG_CRITICAL(format, ...) g_logger->critical("[{}: {}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LOG_TRACE(format, ...) g_logger->trace("[{}:{}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LOG_DEBUG(format, ...) g_logger->debug("[{}:{}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LOG_INFO(format, ...) g_logger->info("[{}:{}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LOG_WARN(format, ...) g_logger->warn("[{}:{}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LOG_ERROR(format, ...) g_logger->error("[{}:{}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LOG_CRITICAL(format, ...) g_logger->critical("[{}:{}] => " format, GetCurrentFilename(__FILE__), __LINE__ __VA_OPT__(,) __VA_ARGS__)
 
 /**
  *

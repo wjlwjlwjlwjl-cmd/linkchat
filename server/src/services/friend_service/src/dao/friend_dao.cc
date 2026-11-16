@@ -202,12 +202,15 @@ GetPendingFriendEventDTO FriendDao::GetPendingFriendEventList(const std::string&
 
 FriendSearchDTO FriendDao::FriendSearch(const std::string& search_key, int count){
     std::vector<std::pair<std::string, std::string>> term;
-    std::vector<std::pair<std::string, std::string>> matches = {{"nickname", search_key}};
-    auto value = es_->SelectTermAndMatch(term, matches); // 这里只做昵称的模糊匹配
+    std::vector<std::pair<std::string, std::string>> matches;
+    // 昵称做子串模糊匹配，match 只能匹配分词后的完整词项，英文前缀无法命中，故用 wildcard
+    std::vector<std::pair<std::string, std::string>> wildcards = {{"nickname", search_key}};
+    auto value = es_->SelectTermAndMatch(term, matches, wildcards);
 
     std::vector<std::string> user_ids;
     for(int i = 0; i < count; i++){
-        std::string user_id = es_->Id(value, i);
+        // 业务需要的是文档里的 user_id 字段，不是 ES 自动生成的文档 _id
+        std::string user_id = es_->SourceField(value, i, "user_id");
         if(user_id.empty()) break;
 
         user_ids.push_back(user_id);

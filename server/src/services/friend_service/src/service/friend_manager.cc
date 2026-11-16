@@ -271,8 +271,12 @@ std::unordered_map<std::string, ::linkchat::UserInfo>
 
     std::string ip;
     auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
-    if(channel->Init(etcd_server_ip_.c_str(), &options_)){
-        LOG_ERROR("Init channel failed, ip: {}", etcd_server_ip_);
+    if(ip.empty()){
+        LOG_ERROR("No nodes available for {}", service_name::user_service);
+        return {};
+    }
+    if(channel->Init(ip.c_str(), &options_)){
+        LOG_ERROR("Init channel failed, ip: {}", ip);
         return {};
     }
 
@@ -303,8 +307,12 @@ std::unordered_map<std::string, ::linkchat::UserInfo>
 std::optional<::linkchat::UserInfo> FriendManager::GetUserInfo_(const std::string& user_id){
     std::string ip;
     auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
-    if(channel->Init(etcd_server_ip_.c_str(), &options_)){
-        LOG_ERROR("Init channel failed, ip: {}", etcd_server_ip_);
+    if(ip.empty()){
+        LOG_ERROR("No nodes available for {}", service_name::user_service);
+        return {};
+    }
+    if(channel->Init(ip.c_str(), &options_)){
+        LOG_ERROR("Init channel failed, ip: {}", ip);
         return {};
     }
 
