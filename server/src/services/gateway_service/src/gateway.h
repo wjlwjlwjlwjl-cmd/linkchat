@@ -1349,7 +1349,7 @@ private:
 
     // POST /friend/chat_session/create，body 为 application/json：
     // {"chat_session_name": "群聊名称", "member_id_list": ["用户ID1", "用户ID2"]}
-    // 创建者（当前用户）从 token 中解析，body 不用带
+    // 创建者（当前用户）从 token 中解析，body 不用带，"member_id_list" 中不需要带创建者 id
     void ChatSessionCreate(const ::httplib::Request& req, ::httplib::Response& res){
         std::string ip;
         auto channel = svc_discovery_->GetSvcChannel(service_name::friend_service, ip);

@@ -372,6 +372,37 @@ ChatSessionCreateDTO FriendDao::CreateChatSession(const std::string& user_id, co
     try{
         auto transaction = MysqlClient::Transaction(db_);
 
+        // 已经存在群名相同且成员完全相同的群聊时，不重复创建
+        std::set<std::string> expected_members(member_id_list.begin(), member_id_list.end());
+        expected_members.insert(user_id);
+
+        // 先取出同名群聊的 id，避免在遍历结果时嵌套查询
+        std::vector<std::string> same_name_session_ids;
+        {
+            using session_query = ::odb::query<::linkchat::ChatSession>;
+            auto sessions = db_->query<::linkchat::ChatSession>(
+                session_query::chat_session_type == ::linkchat::ChatSessionType::GROUP &&
+                session_query::chat_session_name == chat_session_name);
+            for(auto& session: sessions){
+                same_name_session_ids.push_back(session.chat_session_id());
+            }
+        }
+
+        using member_query = ::odb::query<::linkchat::ChatSessionMember>;
+        for(auto& session_id: same_name_session_ids){
+            std::set<std::string> members;
+            {
+                auto rows = db_->query<::linkchat::ChatSessionMember>(
+                    member_query::chat_session_id == session_id);
+                for(auto& row: rows){
+                    members.insert(row.user_id());
+                }
+            }
+            if(members == expected_members){
+                return {false, "已存在同名且成员相同的群聊"};
+            }
+        }
+
         // 先创建群聊的元信息
         ::linkchat::ChatSession session;
         std::string session_id = service_prefix::chat_session_group_prefix + random_util::GetInstanceId();
@@ -381,7 +412,10 @@ ChatSessionCreateDTO FriendDao::CreateChatSession(const std::string& user_id, co
         db_->persist(session);
 
         // 加下来往群里加人
-        for(auto& mem_id: member_id_list){
+        auto creator = ::linkchat::ChatSessionMember(session_id, user_id);
+        db_->persist(creator); // 添加创建人
+        for(auto& mem_id: member_id_list){ // 添加其他成员
+            if(mem_id == user_id) continue;
             ::linkchat::ChatSessionMember member(session_id, mem_id);
             db_->persist(member);
         }

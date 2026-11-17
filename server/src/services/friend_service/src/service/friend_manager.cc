@@ -200,6 +200,9 @@ FriendManager::GetChatSessionList(const std::string &user_id) {
             }
             info.set_chat_session_name(friend_user.value().nickname());
             info.set_avatar(friend_user.value().avatar());
+        } else {
+            // 群聊直接使用创建时设置的群名
+            info.set_chat_session_name(chat_session.chat_session_name);
         }
 
         info.set_chat_session_id(chat_session.chat_session_id);
