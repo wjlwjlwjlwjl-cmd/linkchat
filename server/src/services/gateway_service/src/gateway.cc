@@ -7,7 +7,6 @@
 
 #include "etcd/discover/service_discovery.h"
 #include "gateway.h"
-#include "ws_server.h"
 
 DEFINE_string(gateway_listen_ip, "0.0.0.0", "Gateway listen IP address");
 DEFINE_int32(gateway_port, 9000, "Gateway listen port");
@@ -53,24 +52,20 @@ int main(int argc, char *argv[]) {
 
     redis_factory::RedisConnectionInfo redis_connection_info;
 
-    // 处理主要业务的 http 方法，网关跑在9000端口，其他服务跑在9101-9105端口
-    Gateway gateway(options, svc_discovery, redis_connection_info);
-    // 负责进行服务器推送的 websocket 方法
-    WebSocketServer ws_server(FLAGS_ws_port, redis_connection_info);
+    // 网关：HTTP 业务跑在9000端口，其他服务跑在9101-9105端口；websocket 负责服务器推送
+    Gateway gateway(options, svc_discovery, redis_connection_info, FLAGS_ws_port);
 
     // 捕获 SIGINT 和 SIGTERM 信号
     signal(SIGINT, SignalHandler);
     signal(SIGTERM, SignalHandler);
 
     gateway.run(FLAGS_gateway_listen_ip.c_str(), FLAGS_gateway_port);
-    ws_server.run();
 
     while(kRunning){
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 手动退出，释放资源
     }
 
     gateway.stop();
-    ws_server.stop();
 
     return 0;
 }
