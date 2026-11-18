@@ -265,6 +265,7 @@ private:
         stub.GetSingleFile(&cntl, &request, &response, nullptr);
 
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get single file, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -310,6 +311,7 @@ private:
         ::linkchat::GetMultiFileRsp response;
         stub.GetMultiFile(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get multi file, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -387,6 +389,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetHistoryMsg(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get history msg, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -461,6 +464,7 @@ private:
 
         stub.GetRecentMsg(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get recent msg, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -517,6 +521,7 @@ private:
 
         stub.MsgSearch(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to search msg, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -565,6 +570,7 @@ private:
         ::brpc::Controller cntl;
         stub.UserRegister(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to register, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -607,6 +613,7 @@ private:
         stub.GetEmailVerifyCode(&cntl, &request, &response, nullptr);
 
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get email verify code, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -652,6 +659,7 @@ private:
         ::brpc::Controller cntl;
         stub.NicknameLogin(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to nickname login, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -696,6 +704,7 @@ private:
         ::brpc::Controller cntl;
         stub.EmailLogin(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to email login, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -744,6 +753,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetUserInfo(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get user info, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -794,6 +804,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetMultiUserInfo(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get multi user info, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -843,6 +854,7 @@ private:
         ::brpc::Controller cntl;
         stub.SetUserAvatar(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to set user avatar, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -891,6 +903,7 @@ private:
         ::brpc::Controller cntl;
         stub.SetUserDescription(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to set user description, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -939,6 +952,7 @@ private:
         ::brpc::Controller cntl;
         stub.SetUserNickname(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to set user nickname, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -988,11 +1002,23 @@ private:
             res.status = 400;
             return;
         }
-        stub.GetTransmitTarget(&cntl, &request, &response, nullptr);
+        stub.NewMessage(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to publish message, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
+
+        // 现在还没有搭建网关的主动推送部分，这里只把 targets_id 打出来
+        std::vector<std::string> targets_id;
+        for(auto& target: response.target_id_list()){
+            targets_id.push_back(target);
+        }
+        LOG_INFO("targets_id's size: {}", targets_id.size());
+        for(auto& target: targets_id){
+            LOG_INFO("target_id: {}", target);
+        }
+        LOG_INFO("========================");
 
         ::linkchat::NewMessageRsp rsp;
         rsp.set_success(response.success());
@@ -1045,6 +1071,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetFriendList(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get friend list, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1104,6 +1131,7 @@ private:
         ::brpc::Controller cntl;
         stub.FriendRemove(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to friend remove, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1163,6 +1191,7 @@ private:
         ::brpc::Controller cntl;
         stub.FriendAdd(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to friend add, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1224,6 +1253,7 @@ private:
         ::brpc::Controller cntl;
         stub.FriendAddProcess(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to friend add process, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1283,6 +1313,7 @@ private:
         ::brpc::Controller cntl;
         stub.FriendSearch(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to friend search, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1332,6 +1363,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetChatSessionList(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get chat session list, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1393,6 +1425,7 @@ private:
         ::brpc::Controller cntl;
         stub.ChatSessionCreate(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to chat session create, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1448,6 +1481,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetChatSessionMember(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get chat session member, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }
@@ -1497,6 +1531,7 @@ private:
         ::brpc::Controller cntl;
         stub.GetPendingFriendEventList(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){
+            LOG_ERROR("Failed to get pending friend event list, error: {}", cntl.ErrorText());
             res.status = 502;
             return;
         }

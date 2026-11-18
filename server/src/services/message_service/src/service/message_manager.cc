@@ -75,13 +75,15 @@ bool MessageManager::PersistMessage(const MessageInfo& info){
             LOG_ERROR("Failed to call rpc service from {}: {}", service_name::file_service, controller->ErrorText());
             return false;
         }
-        else{
-            //远程调用成功，将file_id 设置进数据库
-            LOG_INFO("start to update file msg info {}", message_id);
-            std::string file_id = response->file_info().file_id();
-            int file_size = file_content.size();
-            return dao_->UpdateFileMetadata(message_id, file_name, file_id, file_size);
+        if(!response->success()){
+            LOG_ERROR("PutSingleFile failed, errmsg: {}", response->errmsg());
+            return false;
         }
+        //远程调用成功，将file_id 设置进数据库
+        LOG_INFO("start to update file msg info {}", message_id);
+        std::string file_id = response->file_info().file_id();
+        int file_size = file_content.size();
+        return dao_->UpdateFileMetadata(message_id, file_name, file_id, file_size);
     }
     else{
         LOG_ERROR("Unknown MessageType {}", message_id);

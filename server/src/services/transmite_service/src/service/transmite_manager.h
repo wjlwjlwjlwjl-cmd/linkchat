@@ -16,7 +16,7 @@ public:
         SvcDiscovery::Ptr svc_discovery, const std::string& etcd_server_ip,
         const std::string& protocol, int connect_timeout_ms, int timeout_ms, int max_retry);
 
-    GetTransmitTargetDTO GetTransmitTarget(const NewMessageDTO& req);
+    GetTransmitTargetDTO NewMessage(const NewMessageDTO& req);
 
     ~TransmiteManager();
 private:

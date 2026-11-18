@@ -27,5 +27,5 @@ message GetTransmitTargetRsp {
 // 消息转发服务接口
 service MsgTransmitService {
     // 获取消息的转发目标列表
-    rpc GetTransmitTarget(NewMessageReq) returns (GetTransmitTargetRsp);
+    rpc NewMessage(NewMessageReq) returns (GetTransmitTargetRsp);
 }

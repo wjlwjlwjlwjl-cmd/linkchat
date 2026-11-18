@@ -8,7 +8,7 @@
 
 // 新消息请求
 struct NewMessageDTO {
-    std::string token; // 标识发送者身份
+    std::string user_id; // 发送者身份
     std::string chat_session_id; //聊天会话ID -- 标识了当前消息属于哪个会话，应该转发给谁
     MessageContent message; // 消息内容--消息类型+内容
 };

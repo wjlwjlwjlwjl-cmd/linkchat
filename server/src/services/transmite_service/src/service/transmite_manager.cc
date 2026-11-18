@@ -71,16 +71,10 @@ TransmiteManager::TransmiteManager(TransmiteDao::Ptr dao,
 
 TransmiteManager::~TransmiteManager() = default;
 
-GetTransmitTargetDTO TransmiteManager::GetTransmitTarget(const NewMessageDTO& req){
+GetTransmitTargetDTO TransmiteManager::NewMessage(const NewMessageDTO& req){
     GetTransmitTargetDTO rsp;
 
-    // 1. 从req 中提取出发送者 id，从用户服务 rpc 获取元信息
-    std::string user_id;
-    if(!JwtParse(req.token, "user_id", user_id)){
-        rsp.errmsg = "Invalid token";
-        rsp.success = false;
-        return rsp;
-    }
+    std::string user_id = req.user_id; // 发送者id
 
     auto sender_info = dao_->GetSenderInfo(user_id); // 发送者元信息
     if(!sender_info.errmsg.empty()){
@@ -103,7 +97,6 @@ GetTransmitTargetDTO TransmiteManager::GetTransmitTarget(const NewMessageDTO& re
     message_info.message = req.message;
 
     // 队列的声明操作放到 main 函数中，这里直接发送
-    // 对齐交换机、队列等
     ::linkchat::MessageInfo proto_message;
     ToProtoMessageInfo(message_info, &proto_message);
     std::string content;

@@ -19,6 +19,7 @@ std::string OssDao::PutSingleFile(const std::string& file_content, const std::st
     std::string file_id = "file_" + random_util::GetInstanceId() + GetFileExtension(file_name);
 
     if(!client_->Upload(file_content, file_id)){
+        LOG_ERROR("Upload file to oss failed, file_name: {}", file_id.c_str(), file_name.c_str());
         return ""; //上传失败
     }
 

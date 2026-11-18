@@ -75,18 +75,26 @@ TransmiteController::TransmiteController(TransmiteManager::Ptr transmite_manager
 
 TransmiteController::~TransmiteController() = default;
 
-void TransmiteController::GetTransmitTarget(::google::protobuf::RpcController* controller,
+void TransmiteController::NewMessage(::google::protobuf::RpcController* controller,
                     const ::linkchat::NewMessageReq* request,
                     ::linkchat::GetTransmitTargetRsp* response,
                     ::google::protobuf::Closure* done){
     ::brpc::ClosureGuard guard(done);
 
+    std::string user_id;
+    std::string token = request->token();
+    if(!JwtParse(token, "user_id", user_id)){
+        response->set_success(false);
+        response->set_errmsg("token is invalid");
+        return;
+    }
+
     NewMessageDTO req;
-    req.token = request->token();
+    req.user_id = user_id;
     req.chat_session_id = request->chat_session_id();
     req.message = FromProtoMessageContent(request->message());
 
-    auto ret = transmite_manager_->GetTransmitTarget(req);
+    auto ret = transmite_manager_->NewMessage(req);
 
     response->set_success(ret.success);
     response->set_errmsg(ret.errmsg);

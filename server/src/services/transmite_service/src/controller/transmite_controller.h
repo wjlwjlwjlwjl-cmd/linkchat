@@ -1,12 +1,13 @@
 #pragma once
 #include "transmite.pb.h"
 #include "service/transmite_manager.h"
+#include "jwt_util.h"
 
 class TransmiteController : public ::linkchat::MsgTransmitService{
 public:
     TransmiteController(TransmiteManager::Ptr);
 
-    virtual void GetTransmitTarget(::google::protobuf::RpcController* controller,
+    virtual void NewMessage(::google::protobuf::RpcController* controller,
                        const ::linkchat::NewMessageReq* request,
                        ::linkchat::GetTransmitTargetRsp* response,
                        ::google::protobuf::Closure* done);

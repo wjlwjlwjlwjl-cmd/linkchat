@@ -436,7 +436,10 @@ GetChatSessionMemberDTO FriendDao::GetChatSessionMember(const std::string& user_
         auto results = db_->query<::linkchat::ChatSessionMember>(
             query::chat_session_id == chat_session_id
         );
+
+        // 这里获取成员，不包括自己
         for(auto& result: results){
+            if(result.user_id() == user_id) continue;
             users_id.push_back(result.user_id());
         }
 

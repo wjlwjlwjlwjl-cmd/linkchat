@@ -126,13 +126,13 @@ service FriendService {
     //在所有用户中搜索，发送好友申请 done
     rpc FriendSearch(FriendSearchReq) returns (FriendSearchRsp);
 
-    //会话列表获取 done
+    //会话列表获取，最后一条消息的获取正常
     rpc GetChatSessionList(GetChatSessionListReq) returns (GetChatSessionListRsp);
 
     //创建群聊，临时硬编码三个用户 zhangsan，lisi，wangwu 用来测试 done
     rpc ChatSessionCreate(ChatSessionCreateReq) returns (ChatSessionCreateRsp);
 
-    //获取群聊成员列表 done
+    //获取会话成员（单聊+群聊，不包括自己）
     rpc GetChatSessionMember(GetChatSessionMemberReq) returns (GetChatSessionMemberRsp);
 
     //获取待处理的，申请自己好友的信息列表 done
