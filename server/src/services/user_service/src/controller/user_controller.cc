@@ -1,5 +1,6 @@
 #include "user_controller.h"
 #include "base.pb.h"
+#include "error_msg.h"
 #include <brpc/closure_guard.h>
 
 UserController::UserController(UserManager::Ptr user_manager){
@@ -103,7 +104,7 @@ void UserController::SetUserAvatar(::google::protobuf::RpcController* controller
     std::string user_id;
     if(token.empty() || !JwtParse(token, "user_id", user_id)){
         response->set_success(false);
-        response->set_errmsg("token Invalid");
+        response->set_errmsg(errmsg::kTokenInvalid);
         return;
     }
     CommonDTO ret = user_manager_->SetUserAvatar(user_id, request->avatar());
@@ -121,7 +122,7 @@ void UserController::SetUserNickname(::google::protobuf::RpcController* controll
     std::string user_id;
     if(token.empty() || !JwtParse(token, "user_id", user_id)){
         response->set_success(false);
-        response->set_errmsg("token Invalid");
+        response->set_errmsg(errmsg::kTokenInvalid);
         return;
     }
     CommonDTO ret = user_manager_->SetUserNickname(user_id, request->nickname());
@@ -139,7 +140,7 @@ void UserController::SetUserDescription(::google::protobuf::RpcController* contr
     std::string user_id;
     if(token.empty() || !JwtParse(token, "user_id", user_id)){
         response->set_success(false);
-        response->set_errmsg("token Invalid");
+        response->set_errmsg(errmsg::kTokenInvalid);
         return;
     }
     CommonDTO ret = user_manager_->SetUserDescription(user_id, request->description());

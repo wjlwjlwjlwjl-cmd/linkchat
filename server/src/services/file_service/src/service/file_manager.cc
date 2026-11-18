@@ -1,4 +1,5 @@
 #include "file_manager.h"
+#include "error_msg.h"
 
 FileManager::FileManager(OssDao::Ptr dao){
     dao_ = dao;
@@ -11,7 +12,7 @@ GetSingleFileDTO FileManager::GetSingleFile(const std::string& file_id){
     if(file_id == ""){
         GetSingleFileDTO resp;
         resp.success = false;
-        resp.errmsg = "file_id is empty";
+        resp.errmsg = errmsg::file::kFileIdEmpty;
         return resp;
     }
 
@@ -19,7 +20,7 @@ GetSingleFileDTO FileManager::GetSingleFile(const std::string& file_id){
     std::string presigned_url = dao_->GetSingleFile(file_id);
     if(presigned_url.empty()){
         resp.success = false;
-        resp.errmsg = "Fail to get presigned_url";
+        resp.errmsg = errmsg::file::kGetPresignedUrlFailed;
         return resp;
     }
 
@@ -36,7 +37,7 @@ PutSingleFileDTO FileManager::PutSingleFile(const std::string& file_name, const 
     PutSingleFileDTO rsp;
     if(file_name == ""){
         rsp.success = false;
-        rsp.errmsg = "file_name is empty";
+        rsp.errmsg = errmsg::file::kFileNameEmpty;
         return rsp;
     }
 
@@ -44,7 +45,7 @@ PutSingleFileDTO FileManager::PutSingleFile(const std::string& file_name, const 
 
     if(file_id.empty()){
         rsp.success = false;
-        rsp.errmsg = "Fail to upload file to Oss";
+        rsp.errmsg = errmsg::file::kUploadFailed;
         return rsp;
     }    
     rsp.success = true;

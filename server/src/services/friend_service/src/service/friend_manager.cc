@@ -1,4 +1,5 @@
 #include "friend_manager.h"
+#include "error_msg.h"
 #include "base.pb.h"
 #include "friend.pb.h"
 #include "user.pb.h"
@@ -27,7 +28,7 @@ FriendManager::GetFriendList(const std::string &user_id) {
     if (!dto.success) {
         LOG_INFO("get friend list failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("get friend list failed");
+        response.set_errmsg(errmsg::friend_service::kFriendListFailed);
         return response;
     }
 
@@ -55,7 +56,7 @@ FriendManager::FriendRemove(const std::string &user_id,
     if (!dto.success) {
         LOG_INFO("remove friend failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("remove friend failed");
+        response.set_errmsg(errmsg::friend_service::kFriendRemoveFailed);
         return response;
     }
     response.set_success(dto.success);
@@ -88,7 +89,7 @@ FriendManager::FriendAddProcess(const std::string &notify_event_id, bool agree,
     auto user_info = GetUserInfo_(user_id);
     if (!user_info.has_value()) {
         response.set_success(false);
-        response.set_errmsg("user not found");
+        response.set_errmsg(errmsg::kUserNotFound);
         return response;
     }
     std::string apply_user_name = user_info.value().nickname();
@@ -98,7 +99,7 @@ FriendManager::FriendAddProcess(const std::string &notify_event_id, bool agree,
     if (!dto.success) {
         LOG_INFO("friend add process failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("friend add process failed");
+        response.set_errmsg(errmsg::friend_service::kFriendAddProcessFailed);
         return response;
     }
     response.set_success(true);
@@ -115,7 +116,7 @@ FriendManager::GetPendingFriendEventList(const std::string &user_id) {
     if (!dto.success) {
         LOG_INFO("get pending friend event list failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("get pending friend event list failed");
+        response.set_errmsg(errmsg::friend_service::kPendingEventListFailed);
         return response;
     }
     auto ev_resp_list = dto.ev_resp_list;
@@ -147,7 +148,7 @@ FriendManager::FriendSearch(const std::string &search_key, int count) {
     if (!dto.success) {
         LOG_INFO("friend search failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("friend search failed");
+        response.set_errmsg(errmsg::friend_service::kFriendSearchFailed);
         return response;
     }
 
@@ -176,7 +177,7 @@ FriendManager::GetChatSessionList(const std::string &user_id) {
     if (!dto.success) {
         LOG_INFO("get chat session list failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("get chat session list failed");
+        response.set_errmsg(errmsg::friend_service::kChatSessionListFailed);
         return response;
     }
 
@@ -272,7 +273,7 @@ FriendManager::ChatSessionCreate(const std::string &user_id,
     if (!dto.success) {
         LOG_INFO("create chat session failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("create chat session failed");
+        response.set_errmsg(errmsg::friend_service::kChatSessionCreateFailed);
         return response;
     }
     response.set_success(true);
@@ -288,7 +289,7 @@ FriendManager::GetChatSessionMember(const std::string &user_id,
     if (!dto.success) {
         LOG_INFO("get chat session member failed: {}", dto.errmsg);
         response.set_success(false);
-        response.set_errmsg("get chat session member failed");
+        response.set_errmsg(errmsg::friend_service::kChatSessionMemberFailed);
         return response;
     }
 

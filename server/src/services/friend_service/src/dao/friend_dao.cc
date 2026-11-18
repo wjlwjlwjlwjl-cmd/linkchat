@@ -1,4 +1,5 @@
 #include "friend_dao.h"
+#include "error_msg.h"
 #include "domain/get_chat_session_dto.h"
 #include "relation_entity.h"
 #include "message_entity.h"
@@ -103,7 +104,7 @@ CommonDTO FriendDao::FriendRemove(const std::string& user_id, const std::string&
         using query = ::odb::query<::linkchat::RelationEntity>;
         auto result = db_->query<::linkchat::RelationEntity>(query::user_id == user_id && query::peer_id == peer_id);
         if(result.empty()){
-            return {false, "好友关系不存在"};
+            return {false, errmsg::friend_service::kRelationNotFound};
         }
 
         long long unsigned count = db_->erase_query<::linkchat::RelationEntity>
@@ -145,7 +146,7 @@ FriendAddDTO FriendDao::FriendAdd(const std::string& user_id, const std::string&
 
         auto respondent = db_->query_one<::linkchat::User>(::odb::query<::linkchat::User>::user_id == respondent_id);
         if(!respondent){
-            return {false, "好友不存在", ""};
+            return {false, errmsg::friend_service::kFriendNotFound, ""};
         }
 
         // 已经是好友关系，直接失败返回
@@ -153,7 +154,7 @@ FriendAddDTO FriendDao::FriendAdd(const std::string& user_id, const std::string&
         auto relation = db_->query_one<::linkchat::RelationEntity>(
             relation_query::user_id == user_id && relation_query::peer_id == respondent_id);
         if(relation){
-            return {false, "已经是好友关系", ""};
+            return {false, errmsg::friend_service::kAlreadyFriend, ""};
         }
 
         ::linkchat::FriendApply apply(event_id, user_id, respondent_id);
@@ -173,7 +174,7 @@ FriendAddProcessDTO FriendDao::FriendAddProcess(const std::string& notify_event_
         using query = ::odb::query<::linkchat::FriendApply>;
         auto result = db_->query<::linkchat::FriendApply>(query::event_id == notify_event_id);
         if(result.empty()){
-            return {false, "好友申请不存在"};
+            return {false, errmsg::friend_service::kFriendApplyNotFound};
         }
 
         long long unsigned count = db_->erase_query<::linkchat::FriendApply>
@@ -399,7 +400,7 @@ ChatSessionCreateDTO FriendDao::CreateChatSession(const std::string& user_id, co
                 }
             }
             if(members == expected_members){
-                return {false, "已存在同名且成员相同的群聊"};
+                return {false, errmsg::friend_service::kGroupAlreadyExists};
             }
         }
 

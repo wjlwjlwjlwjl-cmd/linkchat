@@ -1,4 +1,5 @@
 #include "transmite_manager.h"
+#include "error_msg.h"
 #include "random_id.h"
 #include "service_constants.h"
 #include "jwt_util.h"
@@ -104,7 +105,7 @@ GetTransmitTargetDTO TransmiteManager::NewMessage(const NewMessageDTO& req){
     if(!mq_client_->Publish(exchange_, binding_key_, content.c_str())){
         // 异步消息持久化失败，直接这次全部失败 
         rsp.success = false;
-        rsp.errmsg = "Publish message to mq failed";
+        rsp.errmsg = errmsg::transmite::kPublishToMqFailed;
         return rsp;
     }
 

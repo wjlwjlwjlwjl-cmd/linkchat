@@ -1,4 +1,5 @@
 #include "transmite_controller.h"
+#include "error_msg.h"
 #include <brpc/closure_guard.h>
 
 namespace {
@@ -85,7 +86,7 @@ void TransmiteController::NewMessage(::google::protobuf::RpcController* controll
     std::string token = request->token();
     if(!JwtParse(token, "user_id", user_id)){
         response->set_success(false);
-        response->set_errmsg("token is invalid");
+        response->set_errmsg(errmsg::kTokenInvalid);
         return;
     }
 

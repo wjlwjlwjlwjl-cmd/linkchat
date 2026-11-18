@@ -1,4 +1,5 @@
 #include "user_manager.h"
+#include "error_msg.h"
 #include "logging/logger.h"
 #include "random_id.h"
 #include "base.pb.h"
@@ -50,7 +51,7 @@ CommonDTO UserManager::Register(const std::string &nickname, const std::string &
     auto verify_code_key = redis_constants::email_verify_code_key + email;
     auto stored_code = redis_template_->get(verify_code_key);
     if(!stored_code.has_value() || stored_code.value() != verify_code){
-        return {false, "Verify code is incorrect"};
+        return {false, errmsg::user::kVerifyCodeIncorrect};
     }
     redis_template_->del(verify_code_key);
 
@@ -74,7 +75,7 @@ LoginDTO UserManager::NicknameLogin(const std::string &nickname, const std::stri
     auto user = dao_->GetUserByNickname(nickname);
     std::string user_id = user.user_id;
     if(user_id.empty()){
-        return {false, "User not found", ""};
+        return {false, errmsg::kUserNotFound, ""};
     }
     std::string token_key = ::redis_constants::token_key + user_id;
     jwt_token = redis_template_->get(token_key).value_or("");
@@ -93,7 +94,7 @@ LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &ve
     auto user = dao_->GetUserByEmail(email);
     std::string user_id = user.user_id;
     if(user_id.empty()){
-        return {false, "User not found", ""};
+        return {false, errmsg::kUserNotFound, ""};
     }
     std::string token_key = redis_constants::token_key + user_id;
     auto stored_token = redis_template_->get(token_key);
@@ -107,7 +108,7 @@ LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &ve
     // 验证验证码
     auto stored_code = redis_template_->get(verify_code_key);
     if(!stored_code.has_value() || stored_code.value() != verify_code){
-        return {false, "Verify code is incorrect", ""};
+        return {false, errmsg::user::kVerifyCodeIncorrect, ""};
     }
     redis_template_->del(verify_code_key);
 
@@ -131,13 +132,13 @@ CommonDTO UserManager::SendVerifyCode(const std::string &email){
     };
     if(!mail::SendMail(smtp_host_, smtp_user_, smtp_pass_, mail)){
         LOG_WARN("Failed to send email");
-        return {false, "Failed to send verify code email"};
+        return {false, errmsg::user::kSendVerifyCodeFailed};
     }
 
     auto verify_code_key = redis_constants::email_verify_code_key + email;
     if(!redis_template_->set(verify_code_key, verify_code, std::chrono::seconds(redis_constants::email_verify_code_expire))){
         LOG_WARN("Failed to set verify code in redis");
-        return {false, "Please try again later"};
+        return {false, errmsg::user::kTryAgainLater};
     }
     // 这里后续使用验证码后，需要删除 redis 中的验证码
 
@@ -155,7 +156,7 @@ CommonDTO UserManager::SetUserAvatar(const std::string& user_id, const std::stri
 
     if(channel->Init(ip.c_str(), &channel_options_) != 0){
         LOG_ERROR("Failed to init channel");
-        return {false, "Failed to init channel"};
+        return {false, errmsg::user::kInitChannelFailed};
     }
     ::linkchat::FileService_Stub stub(channel.get());
 
@@ -173,7 +174,7 @@ CommonDTO UserManager::SetUserAvatar(const std::string& user_id, const std::stri
 
     if(controller->Failed()){
         LOG_ERROR("Failed to put file");
-        return {false, "Failed to put file"};
+        return {false, errmsg::user::kPutFileFailed};
     }
     if(!response->success()){
         LOG_ERROR("Failed to put file, errmsg: {}", response->errmsg());

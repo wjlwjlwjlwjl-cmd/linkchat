@@ -24,7 +24,7 @@ DEFINE_string(elastic_url, "http://elastic:123456@elasticsearch-service:9200/", 
 DEFINE_string(elastic_index_name, "user", "elastic index name");
 DEFINE_string(elastic_doc_type, "_doc", "elastic doc type");
 
-DEFINE_int32(server_port, 9005, "brpc server port");
+DEFINE_int32(server_port, 9105, "brpc server port");
 
 int main(int argc, char* argv[]){
     InitLogger();

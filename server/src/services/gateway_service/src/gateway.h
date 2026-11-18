@@ -10,6 +10,7 @@
 #include <httplib.h>
 #include <chrono>
 #include <string>
+#include <thread>
 #include <brpc/channel.h>
 #include <functional>
 #include <google/protobuf/util/json_util.h>
@@ -24,6 +25,7 @@
 #include "etcd/discover/service_discovery.h"
 #include "service_constants.h"
 #include "jwt_util.h"
+#include "verify_token.h"
 #include "redis/redis_factory.h"
 #include "redis_constants.h"
 #include "json/json_codec.h"
@@ -92,7 +94,7 @@ public:
                 res.status = 401;
                 return ::httplib::Server::HandlerResponse::Handled;
             }
-            if(!VerifyToken(token)){
+            if(!VerifyToken(token, redis_template_)){
                 res.status = 401;
                 return ::httplib::Server::HandlerResponse::Handled;
             }
@@ -196,8 +198,18 @@ public:
     }
 
     void run(const char* listen_ip, int port){
-        LOG_INFO("Gateway is listening {} on {}", listen_ip, port);
-        http_server_.listen(listen_ip, port);
+        http_server_thread_ = std::thread([this, listen_ip, port](){
+            LOG_INFO("Gateway is listening {} on {}", listen_ip, port);
+            http_server_.listen(listen_ip, port);
+        });
+    }
+
+    void stop(){
+        http_server_.stop();
+        if(http_server_thread_.joinable()){
+            http_server_thread_.join();
+        }
+        LOG_INFO("Gateway is stopped");
     }
 private:
     // 白名单接口不校验token
@@ -208,30 +220,13 @@ private:
         EMAIL_LOGIN,
     };
 
+    std::thread http_server_thread_;
     httplib::Server http_server_;
     std::shared_ptr<sw::redis::Redis> redis_template_;
 
     // 服务器通信相关
     std::shared_ptr<::brpc::ChannelOptions> options_;
     SvcDiscovery::Ptr svc_discovery_;
-
-    bool VerifyToken(const std::string& token){
-        // 这里检查 jwt token 能否成功解析，能则认为jwt合法，如果不合法，直接 401 Unauthorized
-        if(token.empty()) return false;
-        std::string user_id;
-        if(!JwtParse(token, "user_id", user_id)){
-            return false;
-        }
-        if(user_id == "") return false;
-
-        // jwt 合法，检查是否过期，存在则“续租”
-        std::string token_key = redis_constants::token_key + user_id;
-        if(!redis_template_->exists(token_key)){
-            return false;
-        }
-        redis_template_->expire(token_key, std::chrono::seconds(redis_constants::token_expire));
-        return true;
-    }
 
     ///////////////////////////////
     // FileService

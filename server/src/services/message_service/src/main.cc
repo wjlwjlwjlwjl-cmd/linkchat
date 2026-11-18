@@ -27,7 +27,7 @@ DEFINE_string(amqp_exchange_type, "", "exchange type");
 DEFINE_string(amqp_queue, "", "queue name");
 DEFINE_string(amqp_binding_key, "", "binding key");
 
-DEFINE_int32(server_port, 9002, "brpc server port");
+DEFINE_int32(server_port, 9102, "brpc server port");
 
 int main(int argc, char *argv[]) {
     InitLogger();

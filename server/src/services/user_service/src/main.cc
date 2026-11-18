@@ -19,7 +19,7 @@ DEFINE_string(mysql_user, "root", "mysql user");
 DEFINE_string(mysql_passwd, "123456", "mysql passwd");
 DEFINE_string(mysql_db, "", "mysql db");
 
-DEFINE_int32(server_port, 9002, "brpc server port");
+DEFINE_int32(server_port, 9103, "brpc server port");
 
 DEFINE_string(smtp_host, "", "smtp host");
 DEFINE_string(smtp_password, "", "smtp password");

@@ -16,7 +16,7 @@ DEFINE_string(aliyun_bucket_name, "", "Bucket Name");
 DEFINE_string(etcd_server_ip, "", "etcd server ip");
 DEFINE_string(service_ip, "", "service ip");
 DEFINE_int32(idle_timeout_seconds, 100, "connection without data transmition in these time closed");
-DEFINE_int32(server_port, 9000, "brpc server port");
+DEFINE_int32(server_port, 9101, "brpc server port");
 
 int main(int argc, char* argv[]){
     InitLogger();

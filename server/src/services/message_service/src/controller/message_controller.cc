@@ -1,5 +1,6 @@
 #include "message_controller.h"
 #include "base.pb.h"
+#include "error_msg.h"
 #include <brpc/closure_guard.h>
 
 namespace {
@@ -127,7 +128,7 @@ void MessageController::MsgSearch(::google::protobuf::RpcController* controller,
     brpc::ClosureGuard guard(done);
     if(request->chat_session_id().empty() || request->search_key().empty()){
         response->set_success(false);
-        response->set_errmsg("chat_session_id and search_key must not be empty");
+        response->set_errmsg(errmsg::message::kSearchParamEmpty);
         return;
     }
     auto msgs = manager_->MsgSearch(request->chat_session_id(), request->search_key(), request->token());
