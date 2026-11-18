@@ -749,6 +749,7 @@ private:
             res.status = 401;
             return;
         }
+        request.set_user_id(user_id);
 
         ::brpc::Controller cntl;
         stub.GetUserInfo(&cntl, &request, &response, nullptr);
