@@ -49,6 +49,7 @@
 
   /* 1.5 功能色 */
   --color-danger: #fa5151;
+  --color-danger-weak: #fef0f0;
   --color-warning: #fa9d3b;
   --color-info: #10aeff;
   --color-success: var(--color-brand);

@@ -30,6 +30,7 @@ export default {
         inverse: 'var(--text-inverse)',
         'on-brand': 'var(--text-on-brand)',
         danger: 'var(--color-danger)',
+        'danger-weak': 'var(--color-danger-weak)',
         warning: 'var(--color-warning)',
         info: 'var(--color-info)',
         success: 'var(--color-success)',
@@ -39,9 +40,13 @@ export default {
           self: 'var(--bubble-self)',
           other: 'var(--bubble-other)',
         },
+        'danger-weak': 'var(--color-danger-weak)',
       },
       textColor: {
         bubble: 'var(--bubble-text)',
+      },
+      borderColor: {
+        'danger-weak': 'var(--color-danger-weak)',
       },
       borderRadius: {
         base: 'var(--radius-base)',

@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { Search } from "lucide-react";
-import { useSessionStore } from "@/stores/session";
+import { hasUnread, useSessionStore } from "@/stores/session";
+import { useUiStore } from "@/stores/ui";
 import { Avatar } from "@/components/Avatar";
 import { cn } from "@/components/ui/cn";
 import type { ChatSessionInfo } from "@/types";
@@ -23,7 +24,9 @@ function previewOf(session: ChatSessionInfo): string {
 function SessionItem({ session }: { session: ChatSessionInfo }) {
   const activeId = useSessionStore((s) => s.activeSessionId);
   const setActive = useSessionStore((s) => s.setActive);
+  const cursor = useSessionStore((s) => s.readCursors[session.chatSessionId]);
   const active = activeId === session.chatSessionId;
+  const unread = !active && hasUnread(session, cursor);
   const name = session.chatSessionName ?? "未命名会话";
   const time = session.prevMessage
     ? formatTime(session.prevMessage.createTime)
@@ -50,7 +53,18 @@ function SessionItem({ session }: { session: ChatSessionInfo }) {
             {time}
           </span>
         </div>
-        <p className="truncate text-sm text-secondary">{previewOf(session)}</p>
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm text-secondary">
+            {previewOf(session)}
+          </p>
+          {/* 未读红点（style.md §2.2）：靠右下，8px，圆形 */}
+          {unread && (
+            <span
+              aria-label="有新消息"
+              className="h-2 w-2 shrink-0 rounded-full bg-danger"
+            />
+          )}
+        </div>
       </div>
     </li>
   );
@@ -59,9 +73,18 @@ function SessionItem({ session }: { session: ChatSessionInfo }) {
 // 会话列表（style.md §2.2）：背景 --bg-list，顶部搜索框
 export function SessionList() {
   const sessions = useSessionStore((s) => s.sessions);
+  const wsError = useUiStore((s) => s.wsError);
 
   return (
     <div className="flex h-full flex-col">
+      {wsError && (
+        <div
+          role="alert"
+          className="shrink-0 border-b border-danger-weak bg-danger-weak px-3 py-2 text-xs text-danger"
+        >
+          网络连接异常，请检查网络，正在重连…
+        </div>
+      )}
       <div className="shrink-0 px-3 py-2">
         <div
           className="flex h-8 items-center rounded-base px-2"

@@ -3,11 +3,14 @@ import { ChatLayout } from "@/features/chat/ChatLayout";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { MinWidthGuard } from "@/components/MinWidthGuard";
 import { useAuthStore } from "@/stores/auth";
+import { useSessionStore } from "@/stores/session";
+import { useUiStore } from "@/stores/ui";
 import { connectWs, disconnectWs } from "@/ws/client";
 
 // 根组件：登录守卫 → 窗口宽度守卫 → 三栏布局
 export default function App() {
   const token = useAuthStore((s) => s.token);
+  const sessionsLoaded = useSessionStore((s) => s.sessionsLoaded);
   const [tooNarrow, setTooNarrow] = useState(
     typeof window !== "undefined" ? window.innerWidth < 1024 : false,
   );
@@ -18,11 +21,16 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // 登录后建立 WS，token 清空（退出 / 401）时断开且不再重连
+  // 串行化：先渲染会话列表，再建立 WS；token 清空（退出 / 401）时断开并复位
   useEffect(() => {
-    if (token) connectWs();
-    else disconnectWs();
-  }, [token]);
+    if (!token) {
+      disconnectWs();
+      useSessionStore.getState().setSessionsLoaded(false);
+      useUiStore.getState().setWsError(false);
+      return;
+    }
+    if (sessionsLoaded) connectWs();
+  }, [token, sessionsLoaded]);
 
   // 401 时 auth store 清空 token，这里自动回落到登录页
   if (!token) return <LoginPage />;

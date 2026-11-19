@@ -37,6 +37,8 @@ export function ChatLayout() {
     activeId ? s.messages[activeId] : undefined,
   );
   const setProfile = useAuthStore((s) => s.setProfile);
+  const profileUserId = useAuthStore((s) => s.profile?.userId);
+  const loadReadCursors = useSessionStore((s) => s.loadReadCursors);
   const users = useUserStore((s) => s.users);
   const upsertUsers = useUserStore((s) => s.upsertUsers);
   const listWidth = useUiStore((s) => s.listWidth);
@@ -46,8 +48,6 @@ export function ChatLayout() {
   const [reloadKey, setReloadKey] = useState(0);
   // 记录已请求过的 userId，避免后端未返回某 id 时重复请求
   const requestedUserIds = useRef<Set<string>>(new Set());
-  // 预览消息缺失时的重试次数（key = 会话 id + 消息 id），防止无限轮询
-  const backfillAttempts = useRef<Map<string, number>>(new Map());
 
   // 当前用户资料（用于气泡左右判定 / 自己的昵称头像）
   useEffect(() => {
@@ -59,6 +59,11 @@ export function ChatLayout() {
         // 资料失败不影响主流程，气泡退化为对方样式
       });
   }, [setProfile]);
+
+  // 资料就绪后加载该账号的已读记录，用于登录后推导未读红点
+  useEffect(() => {
+    if (profileUserId) loadReadCursors(profileUserId);
+  }, [profileUserId, loadReadCursors]);
 
   // 加载会话列表，默认选中第一个
   useEffect(() => {
@@ -78,6 +83,8 @@ export function ChatLayout() {
           const stillExists = list.some((s) => s.chatSessionId === cur);
           setActive(stillExists && cur ? cur : list[0].chatSessionId);
         }
+        // 列表已渲染：允许 App 建立 WS 连接
+        useSessionStore.getState().setSessionsLoaded(true);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -106,6 +113,7 @@ export function ChatLayout() {
   );
 
   // 切换会话时拉取最近消息（切换不清空其他会话已有数据，AGENTS.md §7）
+  // 登录/切换只拉一次，后续以 WS 推送为准；不做轮询补拉
   useEffect(() => {
     if (!activeId) return;
     let cancelled = false;
@@ -116,39 +124,6 @@ export function ChatLayout() {
       cancelled = true;
     };
   }, [activeId, loadRecent]);
-
-  // 会话预览比本地消息新且本地没有该消息：后端 publish 成功但落库有延迟（实测最长 ~10s），
-  // 此时首次拉取会漏消息。做有界重试（每个预览消息最多 12 次，约 24s 窗口）。
-  useEffect(() => {
-    if (!activeId) return;
-    const prev = sessions.find(
-      (s) => s.chatSessionId === activeId,
-    )?.prevMessage;
-    if (!prev?.messageId) return;
-    const list = activeMessages ?? [];
-    if (list.some((m) => m.messageId === prev.messageId)) return;
-    const lastTs = Number(list[list.length - 1]?.createTime ?? 0);
-    if (Number(prev.createTime ?? 0) <= lastTs) return;
-
-    const key = `${activeId}|${prev.messageId}`;
-    if ((backfillAttempts.current.get(key) ?? 0) >= 12) return;
-
-    let stopped = false;
-    let timer: number | undefined;
-    const tick = () => {
-      if (stopped) return;
-      const n = (backfillAttempts.current.get(key) ?? 0) + 1;
-      backfillAttempts.current.set(key, n);
-      void loadRecent(activeId).finally(() => {
-        if (!stopped && n < 12) timer = window.setTimeout(tick, 2000);
-      });
-    };
-    timer = window.setTimeout(tick, 2000);
-    return () => {
-      stopped = true;
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
-  }, [activeId, activeMessages, sessions, loadRecent]);
 
   // 消息 sender 只有 userId，批量补全缺失用户的昵称 / 头像
   useEffect(() => {

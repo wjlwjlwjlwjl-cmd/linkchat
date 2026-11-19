@@ -59,7 +59,7 @@ export function MessageBubble({
         )}
         <div
           className={cn(
-            "break-words rounded-base px-3 py-2.5 text-base",
+            "whitespace-pre-wrap break-words rounded-base px-3 py-2.5 text-base",
             isSelf ? "bg-bubble-self" : "bg-bubble-other shadow-sm",
           )}
           style={{ color: "var(--bubble-text)" }}

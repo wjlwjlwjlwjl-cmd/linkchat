@@ -29,7 +29,13 @@ export function useSendMessage(sessionId: string) {
         const sent = useMessageStore
           .getState()
           .messages[sessionId]?.find((m) => m.messageId === messageId);
-        if (sent) useSessionStore.getState().updatePrevMessage(sessionId, sent);
+        if (sent) {
+          useSessionStore.getState().updatePrevMessage(sessionId, sent);
+          // 仍停留在该会话时，自己发的消息不点亮未读红点
+          if (useSessionStore.getState().activeSessionId === sessionId) {
+            useSessionStore.getState().markSessionRead(sessionId, sent);
+          }
+        }
       } else {
         markFailed(sessionId, messageId);
       }

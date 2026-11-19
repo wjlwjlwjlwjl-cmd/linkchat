@@ -21,13 +21,20 @@ export function handleNewMessage(data: unknown): void {
   const sessionId = data.chatSessionId;
   useMessageStore.getState().dedupeById(sessionId, [data]);
 
-  const session = useSessionStore
-    .getState()
-    .sessions.find((s) => s.chatSessionId === sessionId);
+  const sessionState = useSessionStore.getState();
+  const session = sessionState.sessions.find(
+    (s) => s.chatSessionId === sessionId,
+  );
   if (session) {
-    useSessionStore.getState().updatePrevMessage(sessionId, data);
-  } else {
-    // 未知会话（新会话）：刷新列表
-    void useSessionStore.getState().refresh();
+    sessionState.updatePrevMessage(sessionId, data);
+    // 正在查看该会话：消息已展示，直接视为已读，不显示红点
+    if (sessionState.activeSessionId === sessionId) {
+      sessionState.markSessionRead(sessionId, data);
+    }
+    return;
   }
+  // 未知会话（新会话）：刷新列表，并让该会话保持未读
+  void sessionState.refresh().then(() => {
+    useSessionStore.getState().markSessionUnread(sessionId);
+  });
 }

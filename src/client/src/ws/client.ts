@@ -2,6 +2,7 @@ import { getRecent } from "@/api/message";
 import { useAuthStore } from "@/stores/auth";
 import { useMessageStore } from "@/stores/message";
 import { useSessionStore } from "@/stores/session";
+import { useUiStore } from "@/stores/ui";
 import { dispatch } from "./dispatcher";
 
 // WS 连接管理（AGENTS.md §6.8）：30s 心跳 + 指数退避重连 + 重连补齐
@@ -13,6 +14,8 @@ let heartbeatTimer: number | undefined;
 let reconnectTimer: number | undefined;
 let attempt = 0;
 let manualClose = false;
+// 首次连接不补拉（登录时已拉过一次），仅重连后按 §6.8 补齐
+let everConnected = false;
 
 function wsUrl(): string {
   const base = import.meta.env.VITE_WS_BASE || "ws://127.0.0.1:9001";
@@ -64,7 +67,9 @@ function open(): void {
   ws.onopen = () => {
     attempt = 0;
     startHeartbeat();
-    void backfillRecent();
+    useUiStore.getState().setWsError(false);
+    if (everConnected) void backfillRecent();
+    everConnected = true;
   };
   ws.onmessage = (e: MessageEvent) => {
     if (typeof e.data === "string") dispatch(e.data);
@@ -75,6 +80,8 @@ function open(): void {
   ws.onclose = () => {
     stopHeartbeat();
     if (socket === ws) socket = null;
+    // 非主动断开视为连接异常，侧栏顶部提示
+    if (!manualClose) useUiStore.getState().setWsError(true);
     scheduleReconnect();
   };
 }
@@ -104,5 +111,7 @@ export function disconnectWs(): void {
   const cur = socket;
   socket = null;
   attempt = 0;
+  everConnected = false;
+  useUiStore.getState().setWsError(false);
   cur?.close();
 }
