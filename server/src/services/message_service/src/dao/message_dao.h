@@ -22,7 +22,8 @@ public:
         const char* index_name = "message", const char* doc_type = "_doc");
 
     bool MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id, 
-        const std::string& from_user_id, MessageType message_type, const std::string& content);
+        const std::string& from_user_id, MessageType message_type, const std::string& content,
+        int64_t create_time = 0);
 
     // content 进行检索，并且通过 chat_session_id 进行对话过滤，因此需要插入 content（text），chat_session_id（keyword）
     bool MsgElasticStore(const std::string& content, const std::string& chat_session_id,

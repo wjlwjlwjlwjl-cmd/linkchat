@@ -36,4 +36,5 @@ struct MessageInfo {
     std::string chat_session_id; //消息所属聊天会话ID
     UserInfo sender; //消息发送者信息
     MessageContent message; //消息内容，包括类型及内容
+    int64_t create_time = 0; //消息创建时间（Unix 时间戳，秒）
 };

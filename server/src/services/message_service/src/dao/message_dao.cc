@@ -1,6 +1,7 @@
 #include "message_dao.h"
 #include "odb_mysql/mysql_client.h"
 #include "logging/logger.h"
+#include <ctime>
 #include <stdexcept>
 
 namespace {
@@ -8,11 +9,34 @@ namespace {
 constexpr int kMsgTypeString = 0;
 constexpr int kMsgTypeFile = 1;
 
+// create_time 以本地时间写入 TIMESTAMP 列，查询时也要用本地墙钟时间比较，
+// 因此这里把 Unix 时间戳转换成本地时间
+boost::posix_time::ptime LocalTimeFromUnixSeconds(int64_t seconds) {
+    std::time_t time = static_cast<std::time_t>(seconds);
+    std::tm local_tm{};
+    localtime_r(&time, &local_tm);
+    boost::gregorian::date date(local_tm.tm_year + 1900, local_tm.tm_mon + 1, local_tm.tm_mday);
+    boost::posix_time::time_duration time_of_day(local_tm.tm_hour, local_tm.tm_min, local_tm.tm_sec);
+    return boost::posix_time::ptime(date, time_of_day);
+}
+
+boost::posix_time::ptime LocalTimeFromUnixMinutes(int64_t minutes) {
+    return LocalTimeFromUnixSeconds(minutes * 60);
+}
+
+// ptime 保存的是本地墙钟时间，转 Unix 秒要按本地时区解释（to_time_t 会按 UTC 处理）
+int64_t UnixSecondsFromLocalTime(const boost::posix_time::ptime& t) {
+    std::tm local_tm = boost::posix_time::to_tm(t);
+    local_tm.tm_isdst = -1;
+    return static_cast<int64_t>(std::mktime(&local_tm));
+}
+
 // 将消息实体转换为通用消息结构
 bool FillMessageInfo(const MessageEntity& msg, MessageInfo& msg_info) {
     msg_info.message_id = msg.message_id();
     msg_info.chat_session_id = msg.to_session_id();
     msg_info.sender.user_id = msg.from_user_id();
+    msg_info.create_time = UnixSecondsFromLocalTime(msg.create_time());
 
     if (msg.message_type() == kMsgTypeString) {
         msg_info.message.message_type = MessageType::STRING;
@@ -63,13 +87,15 @@ MessageDao::MessageDao(const char* user, const char* passwd, const char* db_name
 }
 
 bool MessageDao::MsgMetadataStore(const std::string& message_id, const std::string& chat_session_id,
-    const std::string& user_id, MessageType message_type, const std::string& content){
+    const std::string& user_id, MessageType message_type, const std::string& content, int64_t create_time){
     MessageEntity msg;
     msg.set_message_id(message_id);
     msg.set_to_session_id(chat_session_id);
     msg.set_from_user_id(user_id);
     msg.set_message_type(static_cast<signed char>(message_type));
-    msg.set_create_time(boost::posix_time::second_clock::local_time());
+    msg.set_create_time(create_time > 0
+        ? LocalTimeFromUnixSeconds(create_time)
+        : boost::posix_time::second_clock::local_time());
     msg.set_content(content); //对于文字类型，这里为文字内容；文件类型，这里为空（服务层设置为空）
 
     try{
@@ -137,8 +163,7 @@ std::vector<MessageInfo> MessageDao::GetRecentMsg(const std::string& chat_sessio
     try{
         auto transaction = MysqlClient::Transaction(db_);
 
-        boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
-        boost::posix_time::ptime query_time = epoch + boost::posix_time::minutes(cur_time);
+        boost::posix_time::ptime query_time = LocalTimeFromUnixMinutes(cur_time);
 
         if(msg_count < 0) msg_count = 10;
         else if(msg_count > 100) msg_count = 100;
@@ -176,9 +201,8 @@ std::vector<MessageInfo> MessageDao::GetHistroyMsg(const std::string& chat_sessi
     try {
         auto transaction = MysqlClient::Transaction(db_);
 
-        boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
-        boost::posix_time::ptime query_start_time = epoch + boost::posix_time::minutes(start_time);
-        boost::posix_time::ptime query_end_time   = epoch + boost::posix_time::minutes(end_time);
+        boost::posix_time::ptime query_start_time = LocalTimeFromUnixMinutes(start_time);
+        boost::posix_time::ptime query_end_time   = LocalTimeFromUnixMinutes(end_time);
 
         using query = odb::query<MessageEntity>;
         using result = odb::result<MessageEntity>;
@@ -289,6 +313,7 @@ std::vector<MessageInfo> MessageDao::MsgSearch(const std::string& chat_session_i
             msg_info.message_id = msg->message_id();
             msg_info.chat_session_id = msg->to_session_id();
             msg_info.sender.user_id = msg->from_user_id();
+            msg_info.create_time = UnixSecondsFromLocalTime(msg->create_time());
 
             msg_info.message.message_type = MessageType::STRING;
             if (msg->has_content()){

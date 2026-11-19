@@ -6,6 +6,8 @@
 // 除白名单接口（/login/mail_verify_code、/register、/login/nickname、/login/email）外，
 // 所有接口都必须在请求头携带 Authorization: <登录接口返回的 token>，否则返回 401
 
+// 在需要推送消息的接口，在 gateway 中，通过在 ws server 中维护的 user_id<->conn 来推送消息
+
 #include <brpc/controller.h>
 #include <httplib.h>
 #include <chrono>
@@ -346,6 +348,34 @@ private:
     }
 
     ///////////////////////////////
+    // 通过 WebSocket Server 推送消息
+    ///////////////////////////////
+    bool SendMessage(const std::string& user_id, const std::string& msg_content){
+        auto conn = connection_.GetConnection(user_id);
+        if(!conn){
+            // 接收方不在线，直接跳过，由客户端上线后自行拉取
+            return false;
+        }
+
+        auto hdl = conn->get_handle();
+        websocketpp::lib::error_code ec;
+        server_.send(hdl, msg_content, websocketpp::frame::opcode::text, ec);
+        if(ec){
+            LOG_ERROR("send message failed: {}", ec.message());
+            return false;
+        }
+        return true;
+    }
+
+    // 组装推送信封：{"type": "<消息类型>", "data": {<业务数据>}}
+    static std::string BuildPushPayload(const std::string& type, const Json::Value& data){
+        Json::Value root;
+        root["type"] = type;
+        root["data"] = data;
+        return JsonCodec::Serialize(root);
+    }
+
+    ///////////////////////////////
     // FileService
     ///////////////////////////////
     // GET /file/get_single?file_id=<文件ID>
@@ -517,8 +547,8 @@ private:
         res.set_content(content, "application/json");
     }
 
-    // GET /message/recent?chat_session_id=<会话ID>&msg_count=<条数>&cur_time=<当前时间戳>
-    // msg_count 为整型，表示获取最近 N 条；cur_time 为整型时间戳
+    // GET /message/recent?chat_session_id=<会话ID>&msg_count=<条数>[&cur_time=<时间戳>]
+    // msg_count 为整型，表示获取最近 N 条；cur_time 为整型时间戳，可选，缺省以服务端当前时间为准
     void GetRecentMsg(const ::httplib::Request& req, ::httplib::Response& res){
         std::string ip;
         auto channel = svc_discovery_->GetSvcChannel(service_name::message_storage_service, ip);
@@ -564,13 +594,17 @@ private:
             return;
         }
         request.set_msg_count(msg_count);
-        long cur_time;
-        try{
-            cur_time = std::stol(req.get_param_value("cur_time"));
-        }
-        catch(const std::exception& e){
-            res.status = 400;
-            return;
+        int64_t cur_time = std::chrono::duration_cast<std::chrono::minutes>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        std::string cur_time_str = req.get_param_value("cur_time");
+        if(!cur_time_str.empty()){
+            try{
+                cur_time = std::stol(cur_time_str);
+            }
+            catch(const std::exception& e){
+                res.status = 400;
+                return;
+            }
         }
         request.set_cur_time(cur_time);
 
@@ -1080,6 +1114,7 @@ private:
         res.set_content(content, "application/json");
     }
 
+    // 这里拿到 targets_id，主动推送消息
     // POST /transmite/publish，body 为 application/json（token 由网关从 Authorization 头注入，body 不用带）：
     // 文字消息：
     // {"chat_session_id": "会话ID", "message": {"message_type": "STRING", "string_message": {"content": "文字内容"}}}
@@ -1122,16 +1157,15 @@ private:
             return;
         }
 
-        // 现在还没有搭建网关的主动推送部分，这里只把 targets_id 打出来
-        std::vector<std::string> targets_id;
-        for(auto& target: response.target_id_list()){
-            targets_id.push_back(target);
+        // 将新消息推送给所有在线目标，离线用户直接跳过（由客户端上线后拉取）
+        if(response.success() && !response.message().message_id().empty()){
+            std::string message_json;
+            ::google::protobuf::util::MessageToJsonString(response.message(), &message_json);
+            std::string payload = BuildPushPayload("NEW_MESSAGE", JsonCodec::Deserialize(message_json));
+            for(auto& target: response.target_id_list()){
+                SendMessage(target, payload);
+            }
         }
-        LOG_INFO("targets_id's size: {}", targets_id.size());
-        for(auto& target: targets_id){
-            LOG_INFO("target_id: {}", target);
-        }
-        LOG_INFO("========================");
 
         ::linkchat::NewMessageRsp rsp;
         rsp.set_success(response.success());
@@ -1260,6 +1294,7 @@ private:
         res.set_content(content, "application/json");
     }
 
+    // 这里对被申请人通知
     // POST /friend/add，body 为 application/json：
     // {"respondent_id": "被申请人用户ID"}
     void FriendAdd(const ::httplib::Request& req, ::httplib::Response& res){
@@ -1308,6 +1343,15 @@ private:
             res.status = 502;
             return;
         }
+
+        // 将好友申请推送给被申请人
+        if(response.success() && !response.notify_event_id().empty()){
+            Json::Value data;
+            data["notifyEventId"] = response.notify_event_id();
+            data["applyUserId"] = user_id;
+            SendMessage(request.respondent_id(), BuildPushPayload("FRIEND_REQUEST", data));
+        }
+
         std::string content;
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){
@@ -1320,6 +1364,7 @@ private:
         res.set_content(content, "application/json");
     }
 
+    // 这里对申请人通知，并创建了单聊会话，一并通知
     // POST /friend/add_process，body 为 application/json：
     // {"notify_event_id": "好友申请事件ID", "agree": true, "apply_user_id": "申请人用户ID"}
     // agree 为 bool：true 同意 / false 拒绝；被申请人（当前用户）从 token 中解析，body 不用带
@@ -1370,6 +1415,17 @@ private:
             res.status = 502;
             return;
         }
+
+        // 将处理结果推送给申请人，同意时附带新建单聊会话的 id
+        if(response.success()){
+            Json::Value data;
+            data["agree"] = request.agree();
+            if(response.has_new_session_id()){
+                data["newSessionId"] = response.new_session_id();
+            }
+            SendMessage(request.apply_user_id(), BuildPushPayload("FRIEND_APPLY_RESULT", data));
+        }
+
         std::string content;
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){
@@ -1492,6 +1548,7 @@ private:
         res.set_content(content, "application/json");
     }
 
+    // 创建群聊后，对非群主的其他人进行通知
     // POST /friend/chat_session/create，body 为 application/json：
     // {"chat_session_name": "群聊名称", "member_id_list": ["用户ID1", "用户ID2"]}
     // 创建者（当前用户）从 token 中解析，body 不用带，"member_id_list" 中不需要带创建者 id
@@ -1542,6 +1599,22 @@ private:
             res.status = 502;
             return;
         }
+
+        // 向除创建者外的所有成员推送新建群聊通知
+        if(response.success() && !response.chat_session_id().empty()){
+            Json::Value data;
+            data["chatSessionId"] = response.chat_session_id();
+            data["chatSessionName"] = request.chat_session_name();
+            data["creatorId"] = user_id;
+            std::string payload = BuildPushPayload("CHAT_SESSION_CREATED", data);
+            for(auto& member: request.member_id_list()){
+                if(member == user_id){
+                    continue;
+                }
+                SendMessage(member, payload);
+            }
+        }
+
         std::string content;
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){

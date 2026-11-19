@@ -12,6 +12,13 @@ namespace {
 constexpr signed char kMsgTypeString = 0;
 constexpr signed char kMsgTypeFile = 1;
 
+// ptime 保存的是本地墙钟时间，转 Unix 秒要按本地时区解释（to_time_t 会按 UTC 处理）
+int64_t UnixSecondsFromLocalTime(const boost::posix_time::ptime& t) {
+    std::tm local_tm = boost::posix_time::to_tm(t);
+    local_tm.tm_isdst = -1;
+    return static_cast<int64_t>(std::mktime(&local_tm));
+}
+
 // 填充会话的上一条消息，发送者的昵称、头像等信息由 service 层补全
 void FillPrevMessage(odb::database& db, ChatSessionInfo& info) {
     using query = odb::query<MessageEntity>;
@@ -24,6 +31,7 @@ void FillPrevMessage(odb::database& db, ChatSessionInfo& info) {
         prev_message.message_id = msg.message_id();
         prev_message.chat_session_id = msg.to_session_id();
         prev_message.sender.user_id = msg.from_user_id();
+        prev_message.create_time = UnixSecondsFromLocalTime(msg.create_time());
 
         if (msg.message_type() == kMsgTypeString) {
             // 文本消息

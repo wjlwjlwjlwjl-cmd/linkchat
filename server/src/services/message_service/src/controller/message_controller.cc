@@ -8,6 +8,7 @@ namespace {
 void ToProtoMessage(const MessageInfo& src, ::linkchat::MessageInfo* dst) {
     dst->set_message_id(src.message_id);
     dst->set_chat_session_id(src.chat_session_id);
+    dst->set_create_time(src.create_time);
 
     auto* sender = dst->mutable_sender();
     sender->set_user_id(src.sender.user_id);
@@ -44,6 +45,7 @@ MessageInfo FromProtoMessage(const ::linkchat::MessageInfo& src) {
     MessageInfo dst;
     dst.message_id = src.message_id();
     dst.chat_session_id = src.chat_session_id();
+    dst.create_time = src.create_time();
     dst.sender.user_id = src.sender().user_id();
     dst.sender.nickname = src.sender().nickname();
     dst.sender.description = src.sender().description();

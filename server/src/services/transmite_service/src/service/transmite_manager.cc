@@ -6,6 +6,7 @@
 #include "base.pb.h"
 #include "friend.pb.h"
 #include <google/protobuf/util/json_util.h>
+#include <ctime>
 
 namespace {
 
@@ -13,6 +14,7 @@ namespace {
 void ToProtoMessageInfo(const MessageInfo& src, ::linkchat::MessageInfo* dst) {
     dst->set_message_id(src.message_id);
     dst->set_chat_session_id(src.chat_session_id);
+    dst->set_create_time(src.create_time);
 
     auto* sender = dst->mutable_sender();
     sender->set_user_id(src.sender.user_id);
@@ -96,6 +98,7 @@ GetTransmitTargetDTO TransmiteManager::NewMessage(const NewMessageDTO& req){
     message_info.chat_session_id = req.chat_session_id;
     message_info.sender = user_info;
     message_info.message = req.message;
+    message_info.create_time = static_cast<int64_t>(std::time(nullptr));
 
     // 队列的声明操作放到 main 函数中，这里直接发送
     ::linkchat::MessageInfo proto_message;

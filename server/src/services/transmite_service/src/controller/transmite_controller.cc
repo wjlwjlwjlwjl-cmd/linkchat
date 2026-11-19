@@ -37,6 +37,7 @@ MessageContent FromProtoMessageContent(const ::linkchat::MessageContent& src) {
 void ToProtoMessageInfo(const MessageInfo& src, ::linkchat::MessageInfo* dst) {
     dst->set_message_id(src.message_id);
     dst->set_chat_session_id(src.chat_session_id);
+    dst->set_create_time(src.create_time);
 
     auto* sender = dst->mutable_sender();
     sender->set_user_id(src.sender.user_id);

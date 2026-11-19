@@ -248,6 +248,8 @@ FriendManager::GetChatSessionList(const std::string &user_id) {
                 chat_session.prev_message.value().message_id);
             prev_message.set_chat_session_id(
                 chat_session.prev_message.value().chat_session_id);
+            prev_message.set_create_time(
+                chat_session.prev_message.value().create_time);
 
             info.mutable_prev_message()->CopyFrom(prev_message);
         }

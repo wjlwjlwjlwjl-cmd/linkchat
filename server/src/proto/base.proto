@@ -50,6 +50,7 @@ message MessageInfo {
     string chat_session_id = 2; //消息所属聊天会话ID
     UserInfo sender = 3; //消息发送者信息
     MessageContent message = 4; //消息内容，包括类型及内容
+    int64 create_time = 5; //消息创建时间（Unix 时间戳，秒）
 }
 
 message FileDownloadData {

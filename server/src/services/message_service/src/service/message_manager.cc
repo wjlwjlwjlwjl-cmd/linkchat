@@ -34,7 +34,7 @@ bool MessageManager::PersistMessage(const MessageInfo& info){
     MessageType message_type = info.message.message_type;
     std::string content = message_type == MessageType::STRING && info.message.string_message
         ? info.message.string_message->content : "";
-    if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type, content)){
+    if(!dao_->MsgMetadataStore(message_id, chat_session_id, user_id, message_type, content, info.create_time)){
         return false;
     }
     LOG_INFO("PersistMessage: {}", message_id);
