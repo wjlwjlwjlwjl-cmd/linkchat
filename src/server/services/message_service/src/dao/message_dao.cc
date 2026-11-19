@@ -171,9 +171,9 @@ std::vector<MessageInfo> MessageDao::GetRecentMsg(const std::string& chat_sessio
         using query = odb::query<MessageEntity>;
         using result = odb::result<MessageEntity>;
 
+        // 按会话取消息，不限制发送者：收消息方同样需要看到对方消息
         result r = db_->query<MessageEntity>((query::to_session_id == chat_session_id
-            && query::create_time <= query_time
-            && query::from_user_id == user_id)
+            && query::create_time <= query_time)
             + " ORDER BY " + query::create_time + " DESC LIMIT " + std::to_string(msg_count));
 
         for(auto& msg: r){
@@ -208,10 +208,10 @@ std::vector<MessageInfo> MessageDao::GetHistroyMsg(const std::string& chat_sessi
         using result = odb::result<MessageEntity>;
 
         // 查询区间：[start_time, end_time]，并按时间正序（历史消息一般从早到晚展示）
+        // 不限制发送者：会话内双方消息都应返回
         auto q = query::to_session_id == chat_session_id
                && query::create_time >= query_start_time
-               && query::create_time <= query_end_time
-               && query::from_user_id == user_id;
+               && query::create_time <= query_end_time;
 
         result r = db_->query<MessageEntity>(
             q + " ORDER BY " + query::create_time + " ASC");

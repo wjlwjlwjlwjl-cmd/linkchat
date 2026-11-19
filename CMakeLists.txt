@@ -3,4 +3,4 @@ project(linkchat)
 
 set(BIN_DIR ${CMAKE_SOURCE_DIR}/bin)
 
-add_subdirectory(server/src)
+add_subdirectory(src/server)

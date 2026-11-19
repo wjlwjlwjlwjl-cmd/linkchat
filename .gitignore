@@ -4,3 +4,48 @@ build
 settings.conf
 .cache
 bin
+
+# 前端依赖与构建产物
+node_modules
+dist
+.vite
+pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+
+# 环境变量本地覆盖文件
+.env.local
+.env.*.local
+
+# 编译与构建缓存
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+compile_commands.json
+*.o
+*.a
+*.so
+*.so.*
+
+# ODB 生成文件
+*-odb.hxx
+*-odb.cxx
+*-odb.ixx
+
+# 日志与运行时文件
+*.log
+logs
+nohup.out
+*.pid
+*.seed
+*.pid.lock
+
+# 编辑器临时文件
+*.iml
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
