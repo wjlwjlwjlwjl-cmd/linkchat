@@ -156,6 +156,35 @@ export function ChatLayout() {
 
   const activeSession = sessions.find((s) => s.chatSessionId === activeId);
 
+  // 侧边栏预览已前进但详情里没有这条消息时（离线漏推、补齐请求早于落库等），
+  // 以预览消息为准补拉一次，保证侧边栏与详情区一致
+  const syncedRef = useRef<string | null>(null);
+  const syncRetryRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!activeId) return;
+    const prevMessage = activeSession?.prevMessage;
+    if (!prevMessage) return;
+    const loaded = activeMessages?.some(
+      (m) => m.messageId === prevMessage.messageId,
+    );
+    const key = `${activeId}:${prevMessage.messageId}`;
+    if (loaded) {
+      syncedRef.current = key;
+      return;
+    }
+    if (syncedRef.current === key) return;
+    syncedRef.current = key;
+    void loadRecent(activeId);
+    // 预览与消息落库存在时序差：稍后仍缺失时再补一次
+    window.clearTimeout(syncRetryRef.current);
+    syncRetryRef.current = window.setTimeout(() => {
+      const msgs = useMessageStore.getState().messages[activeId];
+      if (msgs?.some((m) => m.messageId === prevMessage.messageId)) return;
+      void loadRecent(activeId);
+    }, 1200);
+  }, [activeId, activeSession?.prevMessage, activeMessages, loadRecent]);
+  useEffect(() => () => window.clearTimeout(syncRetryRef.current), []);
+
   // 重试：先回到 loading 态再触发重新拉取（避免在 effect 内同步 setState）
   const retry = () => {
     setError(null);

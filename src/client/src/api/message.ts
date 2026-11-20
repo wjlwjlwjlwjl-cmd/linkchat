@@ -1,5 +1,10 @@
 import { request, USE_MOCK } from "./client";
-import { mockGetHistory, mockGetRecent, mockPublishMessage } from "./mock";
+import {
+  mockGetHistory,
+  mockGetRecent,
+  mockPublishMessage,
+  mockSearchMessages,
+} from "./mock";
 import type { ApiRsp, MessageInfo, PublishReq } from "@/types";
 
 // 某时间段历史消息（GET /message/history，时间参数为 Unix 分钟，闭区间）
@@ -33,6 +38,19 @@ export function getRecent(p: {
     params.set("cur_time", String(Math.floor(p.curTime / 60)));
   }
   return request(`/message/recent?${params.toString()}`);
+}
+
+// 搜索会话内消息（GET /message/search）
+export function searchMessages(p: {
+  chatSessionId: string;
+  searchKey: string;
+}): Promise<ApiRsp & { msgList?: MessageInfo[] }> {
+  if (USE_MOCK) return mockSearchMessages(p);
+  const params = new URLSearchParams({
+    chat_session_id: p.chatSessionId,
+    search_key: p.searchKey,
+  });
+  return request(`/message/search?${params.toString()}`);
 }
 
 // 发送消息（POST /transmite/publish，body 为 proto3 JSON）

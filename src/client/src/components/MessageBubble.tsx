@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { AlertCircle, Image as ImageIcon } from "lucide-react";
+import {
+  AlertCircle,
+  File as FileIcon,
+  Image as ImageIcon,
+} from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { useUserStore } from "@/stores/user";
 import { Avatar } from "@/components/Avatar";
 import { cn } from "@/components/ui/cn";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
-import { imageMimeType, isImageFileName } from "@/lib/file";
+import { imageMimeType, isImageFileName, formatFileSize } from "@/lib/file";
 import type { LocalMessage } from "@/types";
 
 interface MessageBubbleProps {
@@ -41,6 +45,9 @@ export function MessageBubble({
   const fileMessage = msg.message.fileMessage;
   const isImage =
     fileMessage !== undefined && isImageFileName(fileMessage.fileName);
+  // 非图片文件：以文件卡片展示
+  const isFile = fileMessage !== undefined && !isImage;
+  const fileSizeText = formatFileSize(Number(fileMessage?.fileSize ?? 0));
   const imageContent = fileMessage?.fileContent ?? "";
   // 历史消息只有 fileId，走预签名 URL；刚发送 / 推送的消息带 base64 内容，直接展示
   const imageUrl = useAvatarUrl(
@@ -76,10 +83,14 @@ export function MessageBubble({
         <div
           className={cn(
             "rounded-base",
-            isImage
+            isImage || isFile
               ? "overflow-hidden"
               : "whitespace-pre-wrap break-words px-3 py-2.5 text-base",
-            isSelf ? "bg-bubble-self" : "bg-bubble-other shadow-sm",
+            isFile
+              ? "bg-input shadow-sm"
+              : isSelf
+                ? "bg-bubble-self"
+                : "bg-bubble-other shadow-sm",
           )}
           style={{ color: "var(--bubble-text)" }}
         >
@@ -97,6 +108,24 @@ export function MessageBubble({
                 <ImageIcon size={28} strokeWidth={1.5} />
               </div>
             )
+          ) : isFile ? (
+            <div className="flex w-[220px] items-center gap-3 px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p
+                  className="truncate text-sm text-primary"
+                  title={fileMessage?.fileName}
+                >
+                  {fileMessage?.fileName ?? "文件"}
+                </p>
+                {fileSizeText && (
+                  <p className="mt-1 text-xs text-secondary">{fileSizeText}</p>
+                )}
+              </div>
+              {/* 文件类型图标统一，暂不按后缀区分 */}
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-base bg-panel text-secondary">
+                <FileIcon size={20} strokeWidth={1.5} />
+              </span>
+            </div>
           ) : (
             content
           )}

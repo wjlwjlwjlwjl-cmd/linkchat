@@ -2,7 +2,7 @@ import { useState } from "react";
 import { nicknameLogin, getProfile } from "@/api/user";
 import { useAuthStore } from "@/stores/auth";
 
-// 极简登录页：昵称 + 密码（POST /login/nickname）
+// 深色毛玻璃登录页：品牌光晕背景 + 底边线输入框
 export function LoginPage() {
   const setToken = useAuthStore((s) => s.setToken);
   const setProfile = useAuthStore((s) => s.setProfile);
@@ -41,68 +41,80 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-app">
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-rail">
+      {/* 品牌色光晕：作为登录卡片的背景图案，从深色底中透出层次 */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 blur-[120px]"
+        style={{
+          background:
+            "radial-gradient(circle, var(--color-brand) 0%, transparent 70%)",
+        }}
+      />
+
       <form
         onSubmit={handleSubmit}
-        className="w-[360px] rounded-lg border border-line bg-panel p-8"
+        className="relative w-[380px] rounded-xl border border-white/20 p-8 shadow-popup backdrop-blur-xl"
+        style={{
+          backgroundColor:
+            "color-mix(in srgb, var(--bg-rail) 65%, transparent)",
+        }}
       >
-        <h1 className="mb-6 text-center text-xl font-medium text-primary">
+        <h1 className="mb-8 text-center text-2xl font-semibold text-inverse">
           LinkChat
         </h1>
 
-        <label className="mb-1 block text-sm text-secondary" htmlFor="nickname">
-          昵称
-        </label>
-        <input
-          id="nickname"
-          type="text"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder="请输入昵称"
-          autoComplete="username"
-          className="mb-4 h-9 w-full rounded-base border border-line bg-input px-3 text-sm text-primary placeholder:text-tertiary"
-        />
+        <div className="space-y-6">
+          <div>
+            <label
+              className="mb-2 block text-sm text-secondary"
+              htmlFor="nickname"
+            >
+              昵称
+            </label>
+            <input
+              id="nickname"
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="请输入昵称"
+              autoComplete="username"
+              className="h-10 w-full rounded-none border-b border-white/20 bg-transparent px-0 text-base text-inverse transition-colors placeholder:text-secondary focus:border-brand"
+            />
+          </div>
 
-        <label className="mb-1 block text-sm text-secondary" htmlFor="password">
-          密码
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="请输入密码"
-          autoComplete="current-password"
-          className="mb-4 h-9 w-full rounded-base border border-line bg-input px-3 text-sm text-primary placeholder:text-tertiary"
-        />
+          <div>
+            <label
+              className="mb-2 block text-sm text-secondary"
+              htmlFor="password"
+            >
+              密码
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="请输入密码"
+              autoComplete="current-password"
+              className="h-10 w-full rounded-none border-b border-white/20 bg-transparent px-0 text-base text-inverse transition-colors placeholder:text-secondary focus:border-brand"
+            />
+          </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="mb-3 text-sm"
-            style={{ color: "var(--color-danger)" }}
+          {error && (
+            <p role="alert" className="text-sm text-danger">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={!canSubmit || submitting}
+            className="h-11 w-full rounded-base bg-brand text-base font-medium text-on-brand transition-colors [@media(hover:hover)]:hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:bg-[var(--input-disabled-bg)] disabled:text-tertiary"
           >
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={!canSubmit || submitting}
-          className="h-9 w-full rounded-base text-sm disabled:cursor-not-allowed"
-          style={{
-            background:
-              canSubmit && !submitting
-                ? "var(--color-brand)"
-                : "var(--input-disabled-bg)",
-            color:
-              canSubmit && !submitting
-                ? "var(--text-on-brand)"
-                : "var(--text-tertiary)",
-          }}
-        >
-          {submitting ? "登录中…" : "登录"}
-        </button>
+            {submitting ? "登录中…" : "登录"}
+          </button>
+        </div>
       </form>
     </div>
   );

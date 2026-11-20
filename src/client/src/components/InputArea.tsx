@@ -21,6 +21,8 @@ interface PendingImage {
 // 前端单张图片上限 10MB（后端消息上限 20MB），单次最多 9 张
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGE_COUNT = 9;
+// 文件上限 15MB（后端消息上限 20MB）
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 // 读取为不带 data URL 前缀的 base64
 function readAsBase64(file: File): Promise<string> {
@@ -38,7 +40,7 @@ function readAsBase64(file: File): Promise<string> {
 // 输入区（style.md §2.5 / §4.8）：Enter 发送，Shift+Enter 换行，
 // IME 组合期间 Enter 不发送；工具栏位于输入框下方
 export function InputArea({ sessionId }: InputAreaProps) {
-  const { send, sendImages } = useSendMessage(sessionId);
+  const { send, sendFile, sendImages } = useSendMessage(sessionId);
   const [text, setText] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -48,6 +50,7 @@ export function InputArea({ sessionId }: InputAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileDocInputRef = useRef<HTMLInputElement>(null);
   const canSend = text.trim().length > 0 || images.length > 0;
 
   // 发送：先发暂存图片，再发文字；全部发起后清空对应内容
@@ -147,6 +150,31 @@ export function InputArea({ sessionId }: InputAreaProps) {
     setImages((prev) => prev.filter((img) => img.id !== id));
   };
 
+  // 选择文件：校验大小后立即发送（不限制类型，与图片的暂存流程不同）
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setError("");
+    setEmojiOpen(false);
+    if (file.size > MAX_FILE_BYTES) {
+      setError("文件不能超过 15MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const content = await readAsBase64(file);
+      const ok = await sendFile(file.name, file.size, content);
+      if (!ok) setError("文件发送失败，请重试");
+    } catch {
+      setError("文件读取失败，请重试");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="shrink-0 border-t border-line-light bg-input">
       {error && (
@@ -231,11 +259,21 @@ export function InputArea({ sessionId }: InputAreaProps) {
         <button
           type="button"
           aria-label="文件"
-          className="hv-tool text-secondary"
-          disabled
+          onClick={() => fileDocInputRef.current?.click()}
+          disabled={uploading}
+          className={cn(
+            "hv-tool text-secondary",
+            uploading && "cursor-not-allowed opacity-60",
+          )}
         >
           <Paperclip size={20} strokeWidth={1.5} />
         </button>
+        <input
+          ref={fileDocInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => void handleFileChange(e)}
+        />
 
         <button
           type="button"

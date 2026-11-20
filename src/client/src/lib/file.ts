@@ -21,3 +21,11 @@ export function imageMimeType(fileName?: string): string | undefined {
 export function isImageFileName(fileName?: string): boolean {
   return imageMimeType(fileName) !== undefined;
 }
+
+// 文件大小文案：8B / 8.3K / 1.2M
+export function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}K`;
+  return `${(bytes / 1024 / 1024).toFixed(1)}M`;
+}

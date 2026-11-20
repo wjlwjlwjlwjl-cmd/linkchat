@@ -178,6 +178,21 @@ export function mockGetHistory(p: {
   });
 }
 
+export function mockSearchMessages(p: {
+  chatSessionId: string;
+  searchKey: string;
+}): Promise<ApiRsp & { msgList: MessageInfo[] }> {
+  const all = messagesBySession[p.chatSessionId] ?? [];
+  const key = p.searchKey.toLowerCase();
+  return Promise.resolve({
+    success: true,
+    errmsg: "",
+    msgList: all.filter((m) =>
+      (m.message.stringMessage?.content ?? "").toLowerCase().includes(key),
+    ),
+  });
+}
+
 export function mockPublishMessage(): Promise<ApiRsp> {
   return Promise.resolve({ success: true, errmsg: "" });
 }

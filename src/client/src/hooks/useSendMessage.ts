@@ -67,8 +67,8 @@ export function useSendMessage(sessionId: string) {
     return true;
   };
 
-  // 发送图片：fileContent 为 base64，由消息存储服务转存对象存储
-  const sendImage = async (
+  // 发送文件（图片也走这里）：fileContent 为 base64，由消息存储服务转存对象存储
+  const sendFile = async (
     fileName: string,
     fileSize: number,
     fileContent: string,
@@ -101,7 +101,7 @@ export function useSendMessage(sessionId: string) {
     images: { fileName: string; fileSize: number; content: string }[],
   ) => {
     for (const img of images) {
-      await sendImage(img.fileName, img.fileSize, img.content);
+      await sendFile(img.fileName, img.fileSize, img.content);
     }
   };
 
@@ -112,5 +112,5 @@ export function useSendMessage(sessionId: string) {
     await publish(msg.messageId, msg.message);
   };
 
-  return { send, sendImages, retry };
+  return { send, sendFile, sendImages, retry };
 }
