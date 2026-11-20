@@ -88,6 +88,9 @@ inline bool OssClient::Upload(const std::string& file_content, const std::string
     if (outcome.isSuccess()) {
         return true;
     }
-    std::cout << outcome.error().Message() << std::endl;
+    std::cout << "OSS upload failed, object_name: " << object_name
+              << ", code: " << outcome.error().Code()
+              << ", message: " << outcome.error().Message()
+              << ", request_id: " << outcome.error().RequestId() << std::endl;
     return false;
 }

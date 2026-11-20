@@ -20,6 +20,10 @@ public:
                         const ::linkchat::EmailLoginReq* request,
                         ::linkchat::EmailLoginRsp* response,
                         ::google::protobuf::Closure* done) override;
+    virtual void Unregister(::google::protobuf::RpcController* controller,
+                        const ::linkchat::UnregisterReq* request,
+                        ::linkchat::UnregisterRsp* response,
+                        ::google::protobuf::Closure* done) override;
     virtual void GetEmailVerifyCode(::google::protobuf::RpcController* controller,
                         const ::linkchat::EmailVerifyCodeReq* request,
                         ::linkchat::EmailVerifyCodeRsp* response,

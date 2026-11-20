@@ -25,7 +25,12 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token;
   const headers = new Headers(init?.headers);
   if (token) headers.set("Authorization", token);
-  if (!headers.has("Content-Type") && init?.body) {
+  // FormData 交给浏览器生成 multipart boundary，不能手动写 Content-Type
+  if (
+    !headers.has("Content-Type") &&
+    init?.body &&
+    !(init.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json");
   }
 

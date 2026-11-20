@@ -39,6 +39,15 @@ void UserController::EmailLogin(::google::protobuf::RpcController* controller,
     response->set_token(ret.token);
 }
 
+void UserController::Unregister(::google::protobuf::RpcController* controller,
+                    const ::linkchat::UnregisterReq* request,
+                    ::linkchat::UnregisterRsp* response,
+                    ::google::protobuf::Closure* done){
+    ::brpc::ClosureGuard guard(done);
+    CommonDTO ret = user_manager_->Unregister(request->token());
+    response->set_success(ret.success);
+}
+
 void UserController::GetEmailVerifyCode(::google::protobuf::RpcController* controller,
                     const ::linkchat::EmailVerifyCodeReq* request,
                     ::linkchat::EmailVerifyCodeRsp* response,

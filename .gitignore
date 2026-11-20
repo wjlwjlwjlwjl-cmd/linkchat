@@ -34,7 +34,7 @@ compile_commands.json
 
 # 日志与运行时文件
 *.log
-logs
+log
 nohup.out
 *.pid
 *.seed

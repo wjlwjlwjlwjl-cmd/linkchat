@@ -14,13 +14,17 @@ export function useSendMessage(sessionId: string) {
   const markFailed = useMessageStore((s) => s.markFailed);
   const myId = useAuthStore((s) => s.profile?.userId);
 
-  const publish = async (messageId: string, content: string) => {
+  const publish = async (
+    messageId: string,
+    message: LocalMessage["message"],
+  ) => {
     try {
       const rsp = await publishMessage({
         chatSessionId: sessionId,
         message: {
-          messageType: "STRING",
-          stringMessage: { content },
+          ...message,
+          messageType:
+            message.messageType ?? (message.fileMessage ? "FILE" : "STRING"),
         },
       });
       if (rsp.success === true) {
@@ -59,17 +63,54 @@ export function useSendMessage(sessionId: string) {
       status: "sending",
     };
     appendOptimistic(sessionId, msg);
-    await publish(tempId, content);
+    await publish(tempId, msg.message);
     return true;
+  };
+
+  // 发送图片：fileContent 为 base64，由消息存储服务转存对象存储
+  const sendImage = async (
+    fileName: string,
+    fileSize: number,
+    fileContent: string,
+  ): Promise<boolean> => {
+    if (!myId || !fileContent) return false;
+
+    const tempId = `temp-${crypto.randomUUID()}`;
+    const msg: LocalMessage = {
+      messageId: tempId,
+      chatSessionId: sessionId,
+      sender: { userId: myId },
+      message: {
+        messageType: "FILE",
+        fileMessage: {
+          fileName,
+          fileSize: String(fileSize),
+          fileContent,
+        },
+      },
+      createTime: dayjs().unix().toString(),
+      status: "sending",
+    };
+    appendOptimistic(sessionId, msg);
+    await publish(tempId, msg.message);
+    return true;
+  };
+
+  // 发送多张图片：逐张发送，保证消息顺序与选择顺序一致
+  const sendImages = async (
+    images: { fileName: string; fileSize: number; content: string }[],
+  ) => {
+    for (const img of images) {
+      await sendImage(img.fileName, img.fileSize, img.content);
+    }
   };
 
   // 重新发送失败消息：先复位为 sending，避免重复点击重发
   const retry = async (msg: LocalMessage) => {
     if (msg.status !== "failed") return;
-    const content = msg.message.stringMessage?.content ?? "";
     markSending(sessionId, msg.messageId);
-    await publish(msg.messageId, content);
+    await publish(msg.messageId, msg.message);
   };
 
-  return { send, retry };
+  return { send, sendImages, retry };
 }

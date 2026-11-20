@@ -47,6 +47,11 @@ public:
     /// @return 登录DTO，success、errmsg、token
     LoginDTO EmailLogin(const std::string &email, const std::string &verify_code);
 
+    /// @brief 用户注销
+    /// @param user_id 用户ID
+    /// @return 通用DTO，success、errmsg
+    CommonDTO Unregister(const std::string& token);
+
     /// @brief 发送验证码
     /// @param email 邮箱
     /// @return 验证码DTO，success、errmsg

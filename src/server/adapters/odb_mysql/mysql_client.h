@@ -22,7 +22,7 @@ public:
                                                  int connection_pool_size = 5) {
         std::unique_ptr<odb::mysql::connection_factory> pool(new odb::mysql::connection_pool_factory(connection_pool_size));
         std::shared_ptr<odb::database> db(new odb::mysql::database(user, passwd,
-            db_name, host, port, 0, "utf8", 0, std::move(pool)));
+            db_name, host, port, 0, "utf8mb4", 0, std::move(pool)));
         return db;
     }
 

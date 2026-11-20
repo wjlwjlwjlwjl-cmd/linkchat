@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LinkChat</title>
+    <script>
+      // 首屏先应用已保存主题，避免深色下刷新闪白
+      (function () {
+        try {
+          var mode = localStorage.getItem("linkchat_theme") || "system";
+          var dark =
+            mode === "dark" ||
+            (mode === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          root.dataset.theme = dark ? "dark" : "light";
+          root.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          /* localStorage 不可用时按浅色渲染 */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

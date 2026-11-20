@@ -53,6 +53,7 @@ public:
     #define REGISTER "/register"
     #define NICKNAME_LOGIN "/login/nickname"
     #define EMAIL_LOGIN "/login/email"
+    #define LOGOUT "/logout"
     #define GET_USER_INFO "/user/info"
     #define GET_MULTI_USER_INFO "/user/multi_info"
     #define SET_USER_AVATAR "/user/avatar/set"
@@ -147,6 +148,10 @@ public:
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 EmailLogin(req, res);
             });
+        http_server_.Post(LOGOUT, 
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                Logout(req, res);
+            });
         http_server_.Get(GET_USER_INFO, 
             std::bind(&Gateway::GetUserInfo, this, std::placeholders::_1, std::placeholders::_2));
         http_server_.Get(GET_MULTI_USER_INFO, 
@@ -215,6 +220,8 @@ public:
         // websocket 服务器
         server_.set_access_channels(websocketpp::log::alevel::none); // 关闭日志打印
         server_.init_asio(); // 初始化底层网络框架
+        // 允许重启后立即复用端口，避免旧连接的 TIME_WAIT 导致 Address already in use
+        server_.set_reuse_addr(true);
 
         // 设置操作回调
         server_.set_open_handler(std::bind(&Gateway::OnOpen, this, &server_, std::placeholders::_1));
@@ -325,7 +332,7 @@ private:
         if(!connection_.GetClient(conn, user_id, token)){
             return;
         }
-        connection_.RemoveConnection(user_id);
+        connection_.RemoveConnection(conn);
         LOG_DEBUG("remove connection: {}", user_id);
     }
 
@@ -337,7 +344,7 @@ private:
             LOG_ERROR("client not found (OnFail)");
             return;
         }
-        connection_.RemoveConnection(user_id);
+        connection_.RemoveConnection(conn);
         LOG_DEBUG("remove connection: {}", user_id);
     }
 
@@ -351,20 +358,24 @@ private:
     // 通过 WebSocket Server 推送消息
     ///////////////////////////////
     bool SendMessage(const std::string& user_id, const std::string& msg_content){
-        auto conn = connection_.GetConnection(user_id);
-        if(!conn){
+        auto conns = connection_.GetConnections(user_id);
+        if(conns.empty()){
             // 接收方不在线，直接跳过，由客户端上线后自行拉取
             return false;
         }
 
-        auto hdl = conn->get_handle();
-        websocketpp::lib::error_code ec;
-        server_.send(hdl, msg_content, websocketpp::frame::opcode::text, ec);
-        if(ec){
-            LOG_ERROR("send message failed: {}", ec.message());
-            return false;
+        bool sent = false;
+        for(auto& conn : conns){
+            auto hdl = conn->get_handle();
+            websocketpp::lib::error_code ec;
+            server_.send(hdl, msg_content, websocketpp::frame::opcode::text, ec);
+            if(ec){
+                LOG_ERROR("send message failed: {}", ec.message());
+                continue;
+            }
+            sent = true;
         }
-        return true;
+        return sent;
     }
 
     // 组装推送信封：{"type": "<消息类型>", "data": {<业务数据>}}
@@ -866,6 +877,51 @@ private:
         res.set_content(content, "application/json");
     }
 
+    // POST /logout，无需 body，token 由网关从 Authorization 头注入
+    void Logout(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::user_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::user_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+
+        ::linkchat::UserService_Stub stub(channel.get());
+        ::linkchat::UnregisterReq request;
+        ::linkchat::UnregisterRsp response;
+        request.set_token(token);
+
+        ::brpc::Controller cntl;
+        stub.Unregister(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            LOG_ERROR("Failed to logout, error: {}", cntl.ErrorText());
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize logout response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
     // 这个方法对应的后端接口，只接受 user_id
     // GET /user/info，无需参数，当前用户身份从 Authorization token 中解析
     void GetUserInfo(const ::httplib::Request& req, ::httplib::Response& res){
@@ -1149,6 +1205,19 @@ private:
         if(!status.ok()){
             res.status = 400;
             return;
+        }
+        // 文件/图片消息后端上限 20MB（前端会做更小的预校验）
+        constexpr size_t kMaxFileBytes = 20ULL * 1024 * 1024;
+        if(request.message().message_type() == ::linkchat::MessageType::FILE){
+            const auto& file_message = request.message().file_message();
+            if(file_message.file_content().empty()){
+                res.status = 400;
+                return;
+            }
+            if(file_message.file_content().size() > kMaxFileBytes){
+                res.status = 413;
+                return;
+            }
         }
         stub.NewMessage(&cntl, &request, &response, nullptr);
         if (cntl.Failed()){

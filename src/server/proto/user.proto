@@ -46,6 +46,14 @@ message EmailLoginRsp {
     string token = 3; // 含有用户身份信息的鉴权字符串
 }
 
+message UnregisterReq {
+    string token = 1;
+}
+message UnregisterRsp {
+    bool success = 1;
+    string errmsg = 2;
+}
+
 //个人信息获取-这个只用于获取当前登录用户的信息
 //客户端传递的时候只需要填充session_id即可
 //其他个人/好友信息的获取在好友操作中完成
@@ -105,6 +113,9 @@ service UserService {
     rpc NicknameLogin(NicknameLoginReq) returns (NicknameLoginRsp);
     // 邮箱登录
     rpc EmailLogin(EmailLoginReq) returns (EmailLoginRsp);
+
+    // 用户注销
+    rpc Unregister(UnregisterReq) returns (UnregisterRsp);
 
     // 邮箱验证码获取
     // 验证码ttl放在服务层

@@ -21,6 +21,15 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // 跟随系统：系统深浅色变化时立即切换（style.md §5）
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => useUiStore.getState().syncSystemTheme();
+    media.addEventListener("change", onChange);
+    useUiStore.getState().syncSystemTheme();
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
   // 串行化：先渲染会话列表，再建立 WS；token 清空（退出 / 401）时断开并复位
   useEffect(() => {
     if (!token) {

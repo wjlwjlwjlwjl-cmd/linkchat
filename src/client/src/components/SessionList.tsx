@@ -4,18 +4,22 @@ import { hasUnread, useSessionStore } from "@/stores/session";
 import { useUiStore } from "@/stores/ui";
 import { Avatar } from "@/components/Avatar";
 import { cn } from "@/components/ui/cn";
+import { isImageFileName } from "@/lib/file";
 import type { ChatSessionInfo } from "@/types";
 
 function formatTime(ts: string): string {
   return dayjs.unix(Number(ts)).format("HH:mm");
 }
 
-// 会话预览文案：文本取 content，文件消息显示文件名
+// 会话预览文案：文本取 content，图片固定 [图片]，其他文件显示文件名
 function previewOf(session: ChatSessionInfo): string {
   const msg = session.prevMessage;
   if (!msg) return "";
-  if (msg.message.fileMessage) {
-    return `[文件] ${msg.message.fileMessage.fileName ?? ""}`.trim();
+  const file = msg.message.fileMessage;
+  if (file) {
+    return isImageFileName(file.fileName)
+      ? "[图片]"
+      : `[文件] ${file.fileName ?? ""}`.trim();
   }
   return msg.message.stringMessage?.content ?? "";
 }

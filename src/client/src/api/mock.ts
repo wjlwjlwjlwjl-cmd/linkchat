@@ -181,3 +181,21 @@ export function mockGetHistory(p: {
 export function mockPublishMessage(): Promise<ApiRsp> {
   return Promise.resolve({ success: true, errmsg: "" });
 }
+
+export function mockSetUserAvatar(): Promise<ApiRsp> {
+  return Promise.resolve({ success: true, errmsg: "" });
+}
+
+export function mockSetUserNickname(nickname: string): Promise<ApiRsp> {
+  me.nickname = nickname;
+  return Promise.resolve({ success: true, errmsg: "" });
+}
+
+export function mockSetUserDescription(description: string): Promise<ApiRsp> {
+  me.description = description;
+  return Promise.resolve({ success: true, errmsg: "" });
+}
+
+export function mockLogout(): Promise<ApiRsp> {
+  return Promise.resolve({ success: true, errmsg: "" });
+}

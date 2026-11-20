@@ -1,8 +1,11 @@
-import { AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, Image as ImageIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { useUserStore } from "@/stores/user";
 import { Avatar } from "@/components/Avatar";
 import { cn } from "@/components/ui/cn";
+import { useAvatarUrl } from "@/hooks/useAvatarUrl";
+import { imageMimeType, isImageFileName } from "@/lib/file";
 import type { LocalMessage } from "@/types";
 
 interface MessageBubbleProps {
@@ -35,10 +38,23 @@ export function MessageBubble({
     : (otherUser?.avatar ?? msg.sender.avatar);
 
   // 实测：STRING 消息不返回 messageType，缺失时按文本处理
-  const isFile = msg.message.fileMessage !== undefined;
-  const content = isFile
-    ? `[文件] ${msg.message.fileMessage?.fileName ?? ""}`.trim()
-    : (msg.message.stringMessage?.content ?? "");
+  const fileMessage = msg.message.fileMessage;
+  const isImage =
+    fileMessage !== undefined && isImageFileName(fileMessage.fileName);
+  const imageContent = fileMessage?.fileContent ?? "";
+  // 历史消息只有 fileId，走预签名 URL；刚发送 / 推送的消息带 base64 内容，直接展示
+  const imageUrl = useAvatarUrl(
+    isImage && !imageContent ? fileMessage?.fileId : undefined,
+  );
+  const imageSrc = imageContent
+    ? `data:${imageMimeType(fileMessage?.fileName)};base64,${imageContent}`
+    : (imageUrl ?? "");
+  const [imageBroken, setImageBroken] = useState(false);
+
+  const content =
+    fileMessage !== undefined
+      ? `[文件] ${fileMessage.fileName ?? ""}`.trim()
+      : (msg.message.stringMessage?.content ?? "");
 
   return (
     <div
@@ -59,12 +75,31 @@ export function MessageBubble({
         )}
         <div
           className={cn(
-            "whitespace-pre-wrap break-words rounded-base px-3 py-2.5 text-base",
+            "rounded-base",
+            isImage
+              ? "overflow-hidden"
+              : "whitespace-pre-wrap break-words px-3 py-2.5 text-base",
             isSelf ? "bg-bubble-self" : "bg-bubble-other shadow-sm",
           )}
           style={{ color: "var(--bubble-text)" }}
         >
-          {content}
+          {isImage ? (
+            imageSrc && !imageBroken ? (
+              <img
+                src={imageSrc}
+                alt={fileMessage?.fileName ?? "图片"}
+                className="block max-h-60 max-w-60 object-cover"
+                loading="lazy"
+                onError={() => setImageBroken(true)}
+              />
+            ) : (
+              <div className="flex h-36 w-48 items-center justify-center text-tertiary">
+                <ImageIcon size={28} strokeWidth={1.5} />
+              </div>
+            )
+          ) : (
+            content
+          )}
         </div>
       </div>
       {/* 发送状态（AGENTS.md §6.6）：sending 提示，failed 红叹号可点击重发 */}

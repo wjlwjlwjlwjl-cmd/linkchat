@@ -5,10 +5,12 @@
 /* ========================================================================
    LinkChat 设计令牌（Design Tokens）
    唯一色值来源：所有组件只能引用 var(--xxx)，禁止写死 hex/rgba
-   浅色主题（:root）；深色主题 [data-theme="dark"] 为第二阶段，本文件暂不写。
+   浅色主题（:root）；深色主题见 [data-theme="dark"]（style.md §5）
    ====================================================================== */
 
 :root {
+  color-scheme: light;
+
   /* 1.1 品牌色 */
   --color-brand: #22c55e;
   --color-brand-hover: #1eae53;
@@ -100,11 +102,55 @@
   --search-bg: #e9e9e9; /* 会话列表搜索框底色（§2.2） */
   --icon-hover-bg: rgba(0, 0, 0, 0.05); /* 图标按钮 hover 底（§4 交互表） */
   --input-disabled-bg: #e9e9e9; /* 发送按钮禁用底（§2.5） */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15); /* 滚动条滑块（§3.5） */
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+  --overlay-bg: rgba(0, 0, 0, 0.45); /* 模态遮罩（头像裁剪弹窗） */
 
   /* 1.9 动效 */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
+}
+
+/* ========================================================================
+   深色主题（style.md §5）
+   通过 [data-theme="dark"] 覆盖同名变量，组件无需改动
+   ====================================================================== */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-brand: #22c55e; /* 深色下保持亮度 */
+  --color-link: #7a9cc6;
+
+  --bg-app: #111111;
+  --bg-rail: #1a1a1a;
+  --bg-list: #191919;
+  --bg-list-hover: #232323;
+  --bg-list-active: #2b2b2b;
+  --bg-panel: #1e1e1e;
+  --bg-header: #191919;
+  --bg-input: #1e1e1e;
+  --bg-tooltip: #3a3a3a;
+  --line: #2a2a2a;
+  --line-light: #232323;
+
+  --text-primary: #e5e5e5;
+  --text-secondary: #9a9a9a;
+  --text-tertiary: #6b6b6b;
+
+  --bubble-self: #2c5d3f;
+  --bubble-other: #2c2c2c;
+  --bubble-text: #e5e5e5;
+
+  /* 补充：§5 未列出的组件级 token，避免深色下残留亮色块 */
+  --color-danger-weak: rgba(250, 81, 81, 0.16);
+  --search-bg: #232323;
+  --icon-hover-bg: rgba(255, 255, 255, 0.08);
+  --input-disabled-bg: #2b2b2b;
+  --empty-icon: #3a3a3a;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
 }
 
 /* ========================================================================
@@ -157,6 +203,20 @@ textarea:focus-visible,
   outline-offset: 2px;
 }
 
+/* 浏览器自动填充在深色下会强加橄榄黄底，用内阴影覆盖回输入框 token 底色 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset;
+  -webkit-text-fill-color: var(--text-primary);
+  caret-color: var(--text-primary);
+  transition: background-color 9999s ease-out 0s;
+}
+
+input:autofill {
+  background-image: none;
+}
+
 /* 滚动容器防穿透（AGENTS.md §4.6） */
 .scroll-contain {
   overscroll-behavior: contain;
@@ -172,7 +232,7 @@ textarea:focus-visible,
 }
 .scroll-area:hover {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -180,11 +240,11 @@ textarea:focus-visible,
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--scrollbar-thumb-hover);
 }
 ::-webkit-scrollbar-track {
   background: transparent;

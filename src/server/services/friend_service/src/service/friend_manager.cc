@@ -229,17 +229,26 @@ FriendManager::GetChatSessionList(const std::string &user_id) {
                 MessageType::STRING) {
                 message_content.set_message_type(
                     ::linkchat::MessageType::STRING);
+                const auto& string_msg =
+                    chat_session.prev_message.value().message.string_message;
                 message_content.mutable_string_message()->set_content(
-                    chat_session.prev_message.value()
-                        .message.string_message->content);
+                    string_msg.has_value() ? string_msg->content : "");
             } else {
                 message_content.set_message_type(::linkchat::MessageType::FILE);
-                auto file_msg = chat_session.prev_message.value()
-                                    .message.file_message.value();
+                const auto& prev = chat_session.prev_message.value().message;
                 ::linkchat::FileMessageInfo file_message;
-                file_message.set_file_id(file_msg.file_id.value());
-                file_message.set_file_name(file_msg.file_name.value());
-                file_message.set_file_size(file_msg.file_size.value());
+                if (prev.file_message.has_value()) {
+                    const auto& file_msg = prev.file_message.value();
+                    if (file_msg.file_id.has_value()) {
+                        file_message.set_file_id(file_msg.file_id.value());
+                    }
+                    if (file_msg.file_name.has_value()) {
+                        file_message.set_file_name(file_msg.file_name.value());
+                    }
+                    if (file_msg.file_size.has_value()) {
+                        file_message.set_file_size(file_msg.file_size.value());
+                    }
+                }
                 message_content.mutable_file_message()->CopyFrom(file_message);
             }
             prev_message.mutable_message()->CopyFrom(message_content);

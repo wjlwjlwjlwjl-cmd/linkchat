@@ -120,6 +120,26 @@ LoginDTO UserManager::EmailLogin(const std::string &email, const std::string &ve
     return {true, "", jwt_token};
 }
 
+CommonDTO UserManager::Unregister(const std::string& token){
+    std::string user_id;
+    if(token.empty() || !JwtParse(token, "user_id", user_id)){
+        return {false, errmsg::kTokenInvalid};
+    }
+
+    // 只允许注销当前有效的 token，避免旧 token 把新登录的会话踢掉
+    std::string token_key = ::redis_constants::token_key + user_id;
+    auto stored_token = redis_template_->get(token_key);
+    if(!stored_token.has_value()){
+        return {true, ""}; // 已处于登出状态
+    }
+    if(stored_token.value() != token){
+        return {false, errmsg::kTokenInvalid};
+    }
+
+    redis_template_->del(token_key);
+    return {true, ""};
+}
+
 CommonDTO UserManager::SendVerifyCode(const std::string &email){
     std::string verify_code = random_util::GetVerifyCode();
 
