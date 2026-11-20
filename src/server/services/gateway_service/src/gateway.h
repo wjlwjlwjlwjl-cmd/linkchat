@@ -72,6 +72,7 @@ public:
     #define GET_CHAT_SESSION_LIST "/friend/chat_session/list"
     #define CHAT_SESSION_CREATE "/friend/chat_session/create"
     #define GET_CHAT_SESSION_MEMBER "/friend/chat_session/member"
+    #define GET_SINGLE_CHAT_SESSION "/friend/chat_session/single"
     #define GET_PENDING_FRIEND_EVENT "/friend/pending_event"
 
     Gateway(std::shared_ptr<::brpc::ChannelOptions> options, SvcDiscovery::Ptr svc_discovery, 
@@ -206,6 +207,8 @@ public:
             });
         http_server_.Get(GET_CHAT_SESSION_MEMBER, 
             std::bind(&Gateway::GetChatSessionMember, this, std::placeholders::_1, std::placeholders::_2));
+        http_server_.Get(GET_SINGLE_CHAT_SESSION, 
+            std::bind(&Gateway::GetSingleChatSession, this, std::placeholders::_1, std::placeholders::_2));
         http_server_.Get(GET_PENDING_FRIEND_EVENT, 
             std::bind(&Gateway::GetPendingFriendEventList, this, std::placeholders::_1, std::placeholders::_2));
     }
@@ -1744,6 +1747,62 @@ private:
         ::google::protobuf::util::MessageToJsonString(response, &content);
         if(content == ""){
             LOG_ERROR("Failed to serialize get chat session member response");
+            res.status = 500;
+            return;
+        }
+
+        res.status = 200;
+        res.set_content(content, "application/json");
+    }
+
+    // GET /friend/chat_session/single?friend_id=<好友ID>，获取或创建该好友的单聊会话
+    void GetSingleChatSession(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::friend_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::friend_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::friend_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::FriendService_Stub stub(channel.get());
+        ::linkchat::GetSingleChatSessionReq request;
+        ::linkchat::GetSingleChatSessionRsp response;
+
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        std::string user_id;
+        if(!JwtParse(token, "user_id", user_id)){
+            res.status = 401;
+            return;
+        }
+        request.set_user_id(user_id);
+        std::string friend_id = req.get_param_value("friend_id");
+        if(friend_id.empty()){
+            res.status = 400;
+            return;
+        }
+        request.set_friend_id(friend_id);
+
+        ::brpc::Controller cntl;
+        stub.GetSingleChatSession(&cntl, &request, &response, nullptr);
+        if (cntl.Failed()){
+            LOG_ERROR("Failed to get single chat session, error: {}", cntl.ErrorText());
+            res.status = 502;
+            return;
+        }
+        std::string content;
+        ::google::protobuf::util::MessageToJsonString(response, &content);
+        if(content == ""){
+            LOG_ERROR("Failed to serialize get single chat session response");
             res.status = 500;
             return;
         }

@@ -437,6 +437,91 @@ ChatSessionCreateDTO FriendDao::CreateChatSession(const std::string& user_id, co
     }
 }
 
+ChatSessionCreateDTO FriendDao::GetOrCreateSingleChatSession(const std::string& user_id, const std::string& friend_id){
+    try{
+        if(user_id.empty() || friend_id.empty() || user_id == friend_id){
+            return {false, errmsg::friend_service::kFriendNotFound, ""};
+        }
+
+        auto transaction = MysqlClient::Transaction(db_);
+
+        // 只允许给自己的好友发消息
+        using relation_query = ::odb::query<::linkchat::RelationEntity>;
+        auto relation = db_->query_one<::linkchat::RelationEntity>(
+            relation_query::user_id == user_id && relation_query::peer_id == friend_id);
+        if(!relation){
+            return {false, errmsg::friend_service::kRelationNotFound, ""};
+        }
+
+        // 查找双方是否已经存在单聊会话（不区分 is_del_，删除好友后重新添加需要复用原会话）
+        using member_query = ::odb::query<::linkchat::ChatSessionMember>;
+        std::set<std::string> my_sessions;
+        {
+            auto my_members = db_->query<::linkchat::ChatSessionMember>(
+                member_query::user_id == user_id);
+            for(auto& member: my_members){
+                my_sessions.insert(member.chat_session_id());
+            }
+        }
+
+        std::vector<std::string> common_session_ids;
+        {
+            auto friend_members = db_->query<::linkchat::ChatSessionMember>(
+                member_query::user_id == friend_id);
+            for(auto& member: friend_members){
+                if(my_sessions.count(member.chat_session_id()) != 0){
+                    common_session_ids.push_back(member.chat_session_id());
+                }
+            }
+        }
+
+        // 只复用单聊会话，群聊不算
+        using session_query = ::odb::query<::linkchat::ChatSession>;
+        std::string chat_session_id;
+        for(auto& session_id: common_session_ids){
+            auto session = db_->query_one<::linkchat::ChatSession>(
+                session_query::chat_session_id == session_id);
+            if(session && session->chat_session_type() == ::linkchat::ChatSessionType::SINGLE){
+                chat_session_id = session_id;
+                break;
+            }
+        }
+
+        if(!chat_session_id.empty()){
+            // 会话已存在，将双方成员记录恢复为未删除
+            for(const auto& uid: {user_id, friend_id}){
+                auto member = db_->query_one<::linkchat::ChatSessionMember>(
+                    member_query::chat_session_id == chat_session_id &&
+                    member_query::user_id == uid);
+                if(member && member->is_del()){
+                    member->set_is_del(false);
+                    db_->update(*member);
+                }
+            }
+        }
+        else{
+            chat_session_id = service_prefix::chat_session_single_prefix + random_util::GetInstanceId();
+
+            // 创建单聊会话元信息，单聊会话不需要会话名称
+            ::linkchat::ChatSession session;
+            session.set_chat_session_id(chat_session_id);
+            session.set_chat_session_type(::linkchat::ChatSessionType::SINGLE);
+            db_->persist(session);
+
+            ::linkchat::ChatSessionMember member_user(chat_session_id, user_id);
+            ::linkchat::ChatSessionMember member_friend(chat_session_id, friend_id);
+            db_->persist(member_user);
+            db_->persist(member_friend);
+        }
+
+        MysqlClient::Commit(transaction);
+        return {true, "", chat_session_id};
+    }
+    catch(const std::exception& e){
+        return {false, e.what(), ""};
+    }
+}
+
 GetChatSessionMemberDTO FriendDao::GetChatSessionMember(const std::string& user_id, const std::string& chat_session_id){
     std::vector<std::string> users_id;
     try{

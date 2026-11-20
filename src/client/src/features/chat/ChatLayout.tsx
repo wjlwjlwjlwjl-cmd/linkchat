@@ -9,6 +9,9 @@ import { getRecent } from "@/api/message";
 import { getMultiUserInfo, getProfile } from "@/api/user";
 import { Rail } from "@/components/Rail";
 import { SessionList } from "@/components/SessionList";
+import { ContactsView } from "@/components/ContactsView";
+import { ContactProfileView } from "@/components/ContactProfileView";
+import { ChatInfoPanel } from "@/components/ChatInfoPanel";
 import { MessageHeader } from "@/components/MessageHeader";
 import { MessageList } from "@/components/MessageList";
 import { InputArea } from "@/components/InputArea";
@@ -39,6 +42,11 @@ export function ChatLayout() {
   const setProfile = useAuthStore((s) => s.setProfile);
   const profileUserId = useAuthStore((s) => s.profile?.userId);
   const loadReadCursors = useSessionStore((s) => s.loadReadCursors);
+  const loadPinned = useSessionStore((s) => s.loadPinned);
+  const infoOpen = useUiStore((s) => s.infoOpen);
+  const setInfoOpen = useUiStore((s) => s.setInfoOpen);
+  const sideView = useUiStore((s) => s.sideView);
+  const selectedContact = useUiStore((s) => s.selectedContact);
   const users = useUserStore((s) => s.users);
   const upsertUsers = useUserStore((s) => s.upsertUsers);
   const listWidth = useUiStore((s) => s.listWidth);
@@ -60,10 +68,14 @@ export function ChatLayout() {
       });
   }, [setProfile]);
 
-  // 资料就绪后加载该账号的已读记录，用于登录后推导未读红点
+  // 资料就绪后加载该账号的已读记录与置顶会话
   useEffect(() => {
     if (profileUserId) loadReadCursors(profileUserId);
   }, [profileUserId, loadReadCursors]);
+
+  useEffect(() => {
+    if (profileUserId) loadPinned(profileUserId);
+  }, [profileUserId, loadPinned]);
 
   // 加载会话列表，默认选中第一个
   useEffect(() => {
@@ -140,21 +152,29 @@ export function ChatLayout() {
     if (ids.length === 0) return;
 
     ids.forEach((id) => requestedUserIds.current.add(id));
-    let cancelled = false;
-    getMultiUserInfo(ids)
+    // 写入全局 store，不随组件卸载或消息刷新取消：
+    // 之前用 cancelled 标记会在消息列表更新时丢弃响应，且 id 已被标记请求过，
+    // 导致对方头像/昵称一直退化成「未知用户」且不再重试
+    void getMultiUserInfo(ids)
       .then((rsp) => {
-        if (cancelled || rsp.success !== true) return;
-        upsertUsers(Object.values(rsp.usersInfo ?? {}));
+        if (rsp.success !== true) throw new Error("get multi user info failed");
+        const info = rsp.usersInfo ?? {};
+        upsertUsers(Object.values(info));
+        // 后端没返回的 id 允许下次重新请求
+        ids.forEach((id) => {
+          if (!info[id]) requestedUserIds.current.delete(id);
+        });
       })
       .catch(() => {
-        // 昵称补全失败时组件回退「未知用户」
+        // 失败时解除标记，等下一次消息变化时重试
+        ids.forEach((id) => requestedUserIds.current.delete(id));
       });
-    return () => {
-      cancelled = true;
-    };
   }, [activeMessages, users, upsertUsers]);
 
   const activeSession = sessions.find((s) => s.chatSessionId === activeId);
+
+  // 通讯录中选中的好友：主区域展示资料页，而不是聊天详情
+  const profileContact = sideView === "contacts" ? selectedContact : null;
 
   // 侧边栏预览已前进但详情里没有这条消息时（离线漏推、补齐请求早于落库等），
   // 以预览消息为准补拉一次，保证侧边栏与详情区一致
@@ -199,10 +219,15 @@ export function ChatLayout() {
         style={{ width: listWidth }}
         className="flex shrink-0 flex-col border-r border-line bg-list"
       >
-        <SessionList />
+        {sideView === "contacts" ? <ContactsView /> : <SessionList />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        {error ? (
+        {profileContact ? (
+          <ContactProfileView
+            key={profileContact.userId}
+            contact={profileContact}
+          />
+        ) : error ? (
           <ErrorState message={error} onRetry={retry} />
         ) : activeSession ? (
           <>
@@ -218,6 +243,18 @@ export function ChatLayout() {
           <EmptyState />
         )}
       </div>
+      {infoOpen && activeSession && !profileContact && (
+        <div
+          style={{ width: listWidth }}
+          className="flex shrink-0 flex-col border-l border-line bg-list"
+        >
+          <ChatInfoPanel
+            key={activeSession.chatSessionId}
+            session={activeSession}
+            onClose={() => setInfoOpen(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

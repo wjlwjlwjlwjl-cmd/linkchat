@@ -1,9 +1,13 @@
 import { create } from "zustand";
+import type { UserInfo } from "@/types";
 
 // 主题模式：浅色 / 深色 / 跟随系统（style.md §5）
 export type ThemeMode = "light" | "dark" | "system";
 
 const THEME_KEY = "linkchat_theme";
+
+// 左侧栏视图：会话列表 / 通讯录（由功能栏切换）
+export type SideView = "chats" | "contacts";
 
 function readThemeMode(): ThemeMode {
   try {
@@ -35,6 +39,15 @@ interface UiState {
   // WS 连接异常（连接失败/断线），用于侧栏顶部网络警告
   wsError: boolean;
   setWsError: (wsError: boolean) => void;
+  // 侧边栏是否展示「聊天信息」面板（点击标题栏更多按钮切换）
+  infoOpen: boolean;
+  setInfoOpen: (infoOpen: boolean) => void;
+  // 左侧栏展示会话列表还是通讯录
+  sideView: SideView;
+  setSideView: (sideView: SideView) => void;
+  // 通讯录中选中的好友（在详情区展示资料页）
+  selectedContact: UserInfo | null;
+  setSelectedContact: (contact: UserInfo | null) => void;
   themeMode: ThemeMode;
   systemDark: boolean;
   setThemeMode: (themeMode: ThemeMode) => void;
@@ -51,6 +64,12 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ listWidth: Math.min(MAX, Math.max(MIN, width)) }),
   wsError: false,
   setWsError: (wsError) => set({ wsError }),
+  infoOpen: false,
+  setInfoOpen: (infoOpen) => set({ infoOpen }),
+  sideView: "chats",
+  setSideView: (sideView) => set({ sideView }),
+  selectedContact: null,
+  setSelectedContact: (selectedContact) => set({ selectedContact }),
   themeMode: readThemeMode(),
   systemDark: systemPrefersDark(),
   setThemeMode: (themeMode) => {

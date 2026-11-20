@@ -1,4 +1,10 @@
-import type { ApiRsp, ChatSessionInfo, MessageInfo, UserInfo } from "@/types";
+import type {
+  ApiRsp,
+  ChatSessionInfo,
+  FriendEvent,
+  MessageInfo,
+  UserInfo,
+} from "@/types";
 
 // Mock 数据与真实 api 同签名、同返回类型（AGENTS.md §3.1）
 // M0 阶段所有请求走此文件，不接真实后端。
@@ -143,6 +149,73 @@ export function mockGetFriendList(): Promise<
   ApiRsp & { friendList: UserInfo[] }
 > {
   return Promise.resolve({ success: true, errmsg: "", friendList: friends });
+}
+
+export function mockSearchFriends(
+  searchKey: string,
+  count: number,
+): Promise<ApiRsp & { userInfo: UserInfo[] }> {
+  const key = searchKey.trim().toLowerCase();
+  const list = friends.filter((u) =>
+    (u.nickname ?? "").toLowerCase().includes(key),
+  );
+  return Promise.resolve({
+    success: true,
+    errmsg: "",
+    userInfo: list.slice(0, count),
+  });
+}
+
+export function mockGetChatSessionMembers(
+  chatSessionId: string,
+): Promise<ApiRsp & { memberInfoList: UserInfo[] }> {
+  // s3 为群聊，其余按单聊处理
+  const memberInfoList = chatSessionId === "s3" ? [me, zhangsan, lisi] : [me];
+  return Promise.resolve({ success: true, errmsg: "", memberInfoList });
+}
+
+export function mockGetSingleChatSession(
+  friendId: string,
+): Promise<ApiRsp & { chatSessionId: string }> {
+  const session = sessions.find((s) => s.singleChatFriendId === friendId);
+  return Promise.resolve({
+    success: true,
+    errmsg: "",
+    chatSessionId: session?.chatSessionId ?? `s_single_${friendId}`,
+  });
+}
+
+// 好友申请（mock）：用内存数组模拟待处理事件
+const pendingEvents: FriendEvent[] = [];
+
+export function mockAddFriend(
+  respondentId: string,
+): Promise<ApiRsp & { notifyEventId: string }> {
+  return Promise.resolve({
+    success: true,
+    errmsg: "",
+    notifyEventId: `mock_apply_${respondentId}_${Date.now()}`,
+  });
+}
+
+export function mockGetPendingFriendEvents(): Promise<
+  ApiRsp & { event: FriendEvent[] }
+> {
+  return Promise.resolve({
+    success: true,
+    errmsg: "",
+    event: [...pendingEvents],
+  });
+}
+
+export function mockProcessFriendEvent(
+  notifyEventId: string,
+  _agree: boolean,
+  _applyUserId: string,
+): Promise<ApiRsp> {
+  const index = pendingEvents.findIndex((e) => e.eventId === notifyEventId);
+  if (index >= 0) pendingEvents.splice(index, 1);
+  return Promise.resolve({ success: true, errmsg: "" });
 }
 
 export function mockGetRecent(p: {

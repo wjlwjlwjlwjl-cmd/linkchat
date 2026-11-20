@@ -85,6 +85,12 @@ public:
     ChatSessionCreateDTO CreateChatSession(const std::string& user_id, const std::string& chat_session_name, 
         const std::vector<std::string>& member_id_list);
 
+    /// @brief 获取或创建与好友的单聊会话（已存在则复用，删除后重新添加会恢复成员记录）
+    /// @param user_id 当前用户ID
+    /// @param friend_id 好友用户ID
+    /// @return ChatSessionCreateDTO 会话ID
+    ChatSessionCreateDTO GetOrCreateSingleChatSession(const std::string& user_id, const std::string& friend_id);
+
     /// @brief 获取群聊会话成员列表
     /// @param get_chat_session_member_dto 获取会话成员列表DTO
     /// @return GetChatSessionMemberDTO 获取会话成员列表DTO

@@ -14,7 +14,7 @@ import {
 import { logout } from "@/api/user";
 import { useAuthStore } from "@/stores/auth";
 import { useMessageStore } from "@/stores/message";
-import { useSessionStore } from "@/stores/session";
+import { hasUnread, useSessionStore } from "@/stores/session";
 import { useUiStore, type ThemeMode } from "@/stores/ui";
 import { Avatar } from "@/components/Avatar";
 import { ProfilePopover } from "@/components/ProfilePopover";
@@ -31,6 +31,17 @@ export function Rail() {
   const profile = useAuthStore((s) => s.profile);
   const themeMode = useUiStore((s) => s.themeMode);
   const setThemeMode = useUiStore((s) => s.setThemeMode);
+  const sideView = useUiStore((s) => s.sideView);
+  const setSideView = useUiStore((s) => s.setSideView);
+  const sessions = useSessionStore((s) => s.sessions);
+  const readCursors = useSessionStore((s) => s.readCursors);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  // 与会话列表一致：当前打开会话不算未读，其余有未读才显示红点
+  const hasAnyUnread = sessions.some(
+    (s) =>
+      s.chatSessionId !== activeSessionId &&
+      hasUnread(s, readCursors[s.chatSessionId]),
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [themeExpanded, setThemeExpanded] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -126,21 +137,37 @@ export function Rail() {
         <button
           type="button"
           aria-label="消息"
-          aria-current="page"
-          className="relative rounded-base bg-rail-active p-2 text-inverse"
+          aria-current={sideView === "chats" ? "page" : undefined}
+          onClick={() => setSideView("chats")}
+          className={cn(
+            "relative rounded-base p-2",
+            sideView === "chats" ? "bg-rail-active text-inverse" : "hv-rail",
+          )}
+          style={
+            sideView === "chats" ? undefined : { color: "var(--rail-icon)" }
+          }
         >
           <MessageSquare size={24} strokeWidth={1.5} />
-          <span
-            className="absolute right-1 top-1 h-2 w-2 rounded-full bg-danger"
-            style={{ boxShadow: "0 0 0 1.5px var(--bg-rail)" }}
-            aria-label="3 条未读"
-          />
+          {hasAnyUnread && (
+            <span
+              className="absolute right-1 top-1 h-2 w-2 rounded-full bg-danger"
+              style={{ boxShadow: "0 0 0 1.5px var(--bg-rail)" }}
+              aria-label="有未读消息"
+            />
+          )}
         </button>
         <button
           type="button"
           aria-label="通讯录"
-          className="hv-rail rounded-base p-2"
-          style={{ color: "var(--rail-icon)" }}
+          aria-current={sideView === "contacts" ? "page" : undefined}
+          onClick={() => setSideView("contacts")}
+          className={cn(
+            "rounded-base p-2",
+            sideView === "contacts" ? "bg-rail-active text-inverse" : "hv-rail",
+          )}
+          style={
+            sideView === "contacts" ? undefined : { color: "var(--rail-icon)" }
+          }
         >
           <Users size={24} strokeWidth={1.5} />
         </button>

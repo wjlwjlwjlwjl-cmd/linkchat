@@ -32,6 +32,7 @@ public:
     ::linkchat::ChatSessionCreateRsp ChatSessionCreate(const std::string& user_id, const std::string& chat_session_name, 
         std::vector<std::string>& member_id_list);
     ::linkchat::GetChatSessionMemberRsp GetChatSessionMember(const std::string& user_id, const std::string& chat_session_id);
+    ::linkchat::GetSingleChatSessionRsp GetSingleChatSession(const std::string& user_id, const std::string& friend_id);
 
 private:
     FriendDao::Ptr dao_;

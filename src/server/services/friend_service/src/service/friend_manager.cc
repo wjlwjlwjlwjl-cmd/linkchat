@@ -317,6 +317,25 @@ FriendManager::GetChatSessionMember(const std::string &user_id,
     return response;
 }
 
+::linkchat::GetSingleChatSessionRsp
+FriendManager::GetSingleChatSession(const std::string &user_id,
+                                    const std::string &friend_id) {
+    ::linkchat::GetSingleChatSessionRsp response;
+
+    auto dto = dao_->GetOrCreateSingleChatSession(user_id, friend_id);
+    if (!dto.success) {
+        LOG_INFO("get single chat session failed: {}", dto.errmsg);
+        response.set_success(false);
+        response.set_errmsg(dto.errmsg.empty()
+                                ? errmsg::friend_service::kChatSessionCreateFailed
+                                : dto.errmsg);
+        return response;
+    }
+    response.set_success(true);
+    response.set_chat_session_id(dto.chat_session_id);
+    return response;
+}
+
 //////////////////////////////////////////
 /// 私有方法
 //////////////////////////////////////////

@@ -1,8 +1,9 @@
+import { Fragment, useMemo } from "react";
 import dayjs from "dayjs";
-import { Search } from "lucide-react";
 import { hasUnread, useSessionStore } from "@/stores/session";
 import { useUiStore } from "@/stores/ui";
 import { Avatar } from "@/components/Avatar";
+import { FriendSearch } from "@/components/FriendSearch";
 import { cn } from "@/components/ui/cn";
 import { isImageFileName } from "@/lib/file";
 import type { ChatSessionInfo } from "@/types";
@@ -25,7 +26,13 @@ function previewOf(session: ChatSessionInfo): string {
 }
 
 // 会话列表项（style.md §2.2）：高 64px，选中不加左侧绿条，只用底色
-function SessionItem({ session }: { session: ChatSessionInfo }) {
+function SessionItem({
+  session,
+  pinned,
+}: {
+  session: ChatSessionInfo;
+  pinned: boolean;
+}) {
   const activeId = useSessionStore((s) => s.activeSessionId);
   const setActive = useSessionStore((s) => s.setActive);
   const cursor = useSessionStore((s) => s.readCursors[session.chatSessionId]);
@@ -44,7 +51,7 @@ function SessionItem({ session }: { session: ChatSessionInfo }) {
       onClick={() => setActive(session.chatSessionId)}
       className={cn(
         "flex h-16 cursor-pointer items-center px-3",
-        active ? "bg-list-active" : "hv-list",
+        active ? "bg-list-active" : cn(pinned && "bg-panel", "hv-list"),
       )}
     >
       <div className="mr-3">
@@ -77,7 +84,23 @@ function SessionItem({ session }: { session: ChatSessionInfo }) {
 // 会话列表（style.md §2.2）：背景 --bg-list，顶部搜索框
 export function SessionList() {
   const sessions = useSessionStore((s) => s.sessions);
+  const pinnedIds = useSessionStore((s) => s.pinnedIds);
   const wsError = useUiStore((s) => s.wsError);
+
+  // 置顶会话排在前面，其余保持后端顺序
+  const { ordered, lastPinned } = useMemo(() => {
+    const pinned = new Set(pinnedIds);
+    const list = [...sessions].sort((a, b) => {
+      const pa = pinned.has(a.chatSessionId) ? 0 : 1;
+      const pb = pinned.has(b.chatSessionId) ? 0 : 1;
+      return pa - pb;
+    });
+    let last = -1;
+    list.forEach((s, i) => {
+      if (pinned.has(s.chatSessionId)) last = i;
+    });
+    return { ordered: list, lastPinned: last };
+  }, [sessions, pinnedIds]);
 
   return (
     <div className="flex h-full flex-col">
@@ -89,26 +112,22 @@ export function SessionList() {
           网络连接异常，请检查网络，正在重连…
         </div>
       )}
-      <div className="shrink-0 px-3 py-2">
-        <div
-          className="flex h-8 items-center rounded-base px-2"
-          style={{ background: "var(--search-bg)" }}
-        >
-          <Search size={16} strokeWidth={1.5} className="text-secondary" />
-          <input
-            type="text"
-            placeholder="搜索"
-            className="ml-2 w-full bg-transparent text-sm text-primary placeholder:text-tertiary focus:outline-none"
-          />
-        </div>
-      </div>
+      <FriendSearch />
       <ul
         role="listbox"
         aria-label="会话列表"
         className="scroll-area scroll-contain min-h-0 flex-1 overflow-y-auto"
       >
-        {sessions.map((s) => (
-          <SessionItem key={s.chatSessionId} session={s} />
+        {ordered.map((s, i) => (
+          <Fragment key={s.chatSessionId}>
+            <SessionItem
+              session={s}
+              pinned={pinnedIds.includes(s.chatSessionId)}
+            />
+            {i === lastPinned && (
+              <li aria-hidden="true" className="border-b border-line" />
+            )}
+          </Fragment>
         ))}
       </ul>
     </div>

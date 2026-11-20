@@ -1,16 +1,15 @@
 import { useState } from "react";
-import {
-  AlertCircle,
-  File as FileIcon,
-  Image as ImageIcon,
-} from "lucide-react";
+import { AlertCircle, FileText, Image as ImageIcon } from "lucide-react";
+import { getSingleFile } from "@/api/file";
+import { ImageViewerDialog } from "@/components/ImageViewerDialog";
 import { useAuthStore } from "@/stores/auth";
 import { useUserStore } from "@/stores/user";
 import { Avatar } from "@/components/Avatar";
+import { UserInfoPopup } from "@/components/UserInfoPopup";
 import { cn } from "@/components/ui/cn";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
 import { imageMimeType, isImageFileName, formatFileSize } from "@/lib/file";
-import type { LocalMessage } from "@/types";
+import type { LocalMessage, UserInfo } from "@/types";
 
 interface MessageBubbleProps {
   msg: LocalMessage;
@@ -33,6 +32,11 @@ export function MessageBubble({
   const otherUser = useUserStore((s) => s.users[msg.sender.userId]);
   const myName = useAuthStore((s) => s.profile?.nickname);
   const myAvatar = useAuthStore((s) => s.profile?.avatar);
+  const [infoAnchor, setInfoAnchor] = useState<{
+    userId: string;
+    rect: DOMRect;
+    initial: UserInfo;
+  } | null>(null);
 
   const nickname = isSelf
     ? (myName ?? "我")
@@ -57,6 +61,42 @@ export function MessageBubble({
     ? `data:${imageMimeType(fileMessage?.fileName)};base64,${imageContent}`
     : (imageUrl ?? "");
   const [imageBroken, setImageBroken] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  // 下载文件：优先用后端预签名地址，本地乐观消息则用内存里的 base64
+  const handleDownload = async () => {
+    if (!fileMessage || downloading) return;
+    setDownloading(true);
+    try {
+      let url = "";
+      if (fileMessage.fileId) {
+        const rsp = await getSingleFile(fileMessage.fileId);
+        url = rsp.success === true ? (rsp.fileData?.presignedUrl ?? "") : "";
+      }
+      if (!url && fileMessage.fileContent) {
+        const binary = atob(fileMessage.fileContent);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        url = URL.createObjectURL(new Blob([bytes]));
+      }
+      if (!url) return;
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileMessage.fileName ?? "文件";
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      // 预签名地址获取失败时保持静默，用户可再次点击重试
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const content =
     fileMessage !== undefined
@@ -73,7 +113,30 @@ export function MessageBubble({
     >
       {!isSelf && (
         <div className="mr-3 mt-1">
-          <Avatar fileId={avatarFileId} name={nickname} />
+          <button
+            type="button"
+            data-user-avatar
+            aria-label={`查看 ${nickname} 的资料`}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setInfoAnchor((prev) =>
+                prev?.userId === msg.sender.userId
+                  ? null
+                  : {
+                      userId: msg.sender.userId,
+                      rect,
+                      initial: {
+                        userId: msg.sender.userId,
+                        nickname,
+                        avatar: avatarFileId,
+                      },
+                    },
+              );
+            }}
+            className="block cursor-pointer rounded-full"
+          >
+            <Avatar fileId={avatarFileId} name={nickname} />
+          </button>
         </div>
       )}
       <div className="flex max-w-[60%] flex-col">
@@ -96,20 +159,33 @@ export function MessageBubble({
         >
           {isImage ? (
             imageSrc && !imageBroken ? (
-              <img
-                src={imageSrc}
-                alt={fileMessage?.fileName ?? "图片"}
-                className="block max-h-60 max-w-60 object-cover"
-                loading="lazy"
-                onError={() => setImageBroken(true)}
-              />
+              <button
+                type="button"
+                aria-label="查看大图"
+                onClick={() => setViewerOpen(true)}
+                className="block cursor-zoom-in"
+              >
+                <img
+                  src={imageSrc}
+                  alt={fileMessage?.fileName ?? "图片"}
+                  className="block max-h-60 max-w-60 object-cover"
+                  loading="lazy"
+                  onError={() => setImageBroken(true)}
+                />
+              </button>
             ) : (
               <div className="flex h-36 w-48 items-center justify-center text-tertiary">
                 <ImageIcon size={28} strokeWidth={1.5} />
               </div>
             )
           ) : isFile ? (
-            <div className="flex w-[220px] items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => void handleDownload()}
+              disabled={downloading}
+              aria-label={`下载 ${fileMessage?.fileName ?? "文件"}`}
+              className="flex w-[220px] items-center gap-3 px-3 py-2.5 text-left disabled:opacity-70"
+            >
               <div className="min-w-0 flex-1">
                 <p
                   className="truncate text-sm text-primary"
@@ -121,11 +197,11 @@ export function MessageBubble({
                   <p className="mt-1 text-xs text-secondary">{fileSizeText}</p>
                 )}
               </div>
-              {/* 文件类型图标统一，暂不按后缀区分 */}
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-base bg-panel text-secondary">
-                <FileIcon size={20} strokeWidth={1.5} />
+              {/* 文件类型图标统一，放大并保留线条细节 */}
+              <span className="flex shrink-0 items-center justify-center text-brand">
+                <FileText size={30} strokeWidth={1.5} />
               </span>
-            </div>
+            </button>
           ) : (
             content
           )}
@@ -148,10 +224,44 @@ export function MessageBubble({
           <AlertCircle size={16} strokeWidth={1.5} />
         </button>
       )}
-      {isSelf && (
+      {isSelf && myId && (
         <div className="ml-3 mt-1">
-          <Avatar fileId={myAvatar} name={nickname} />
+          <button
+            type="button"
+            data-user-avatar
+            aria-label="查看我的资料"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setInfoAnchor((prev) =>
+                prev?.userId === myId
+                  ? null
+                  : {
+                      userId: myId,
+                      rect,
+                      initial: { userId: myId, nickname, avatar: myAvatar },
+                    },
+              );
+            }}
+            className="block cursor-pointer rounded-full"
+          >
+            <Avatar fileId={myAvatar} name={nickname} />
+          </button>
         </div>
+      )}
+      {infoAnchor && (
+        <UserInfoPopup
+          userId={infoAnchor.userId}
+          anchor={infoAnchor.rect}
+          initial={infoAnchor.initial}
+          onClose={() => setInfoAnchor(null)}
+        />
+      )}
+      {viewerOpen && (
+        <ImageViewerDialog
+          sessionId={msg.chatSessionId}
+          startMessageId={msg.messageId}
+          onClose={() => setViewerOpen(false)}
+        />
       )}
     </div>
   );

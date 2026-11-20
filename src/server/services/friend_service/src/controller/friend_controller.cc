@@ -85,6 +85,15 @@ void FriendController::ChatSessionCreate(::google::protobuf::RpcController* cont
     response->CopyFrom(ret);
 }
 
+void FriendController::GetSingleChatSession(::google::protobuf::RpcController* controller,
+                    const ::linkchat::GetSingleChatSessionReq* request,
+                    ::linkchat::GetSingleChatSessionRsp* response,
+                    ::google::protobuf::Closure* done){
+    ::brpc::ClosureGuard guard(done);
+    auto ret = friend_service_->GetSingleChatSession(request->user_id(), request->friend_id());
+    response->CopyFrom(ret);
+}
+
 void FriendController::GetChatSessionMember(::google::protobuf::RpcController* controller,
                     const ::linkchat::GetChatSessionMemberReq* request,
                     ::linkchat::GetChatSessionMemberRsp* response,

@@ -42,6 +42,10 @@ public:
                         const ::linkchat::GetChatSessionMemberReq* request,
                         ::linkchat::GetChatSessionMemberRsp* response,
                         ::google::protobuf::Closure* done) override;
+    virtual void GetSingleChatSession(::google::protobuf::RpcController* controller,
+                        const ::linkchat::GetSingleChatSessionReq* request,
+                        ::linkchat::GetSingleChatSessionRsp* response,
+                        ::google::protobuf::Closure* done) override;
 private:
     ::FriendManager::Ptr friend_service_;
 };

@@ -10,6 +10,7 @@ export interface ReadCursor {
 }
 
 const READ_KEY_PREFIX = "linkchat_read_";
+const PIN_KEY_PREFIX = "linkchat_pin_";
 
 // 与消息列表一致：先比较秒级时间，同秒再比较 messageId
 function compareMessage(
@@ -96,6 +97,29 @@ function saveStored(cursors: Record<string, ReadCursor>): void {
   }
 }
 
+// 置顶会话按账号持久化（后端无置顶字段）
+function loadPinnedStored(userId: string): string[] {
+  try {
+    const raw = localStorage.getItem(PIN_KEY_PREFIX + userId);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === "string");
+  } catch {
+    return [];
+  }
+}
+
+function savePinnedStored(ids: string[]): void {
+  const userId = useAuthStore.getState().profile?.userId;
+  if (!userId) return;
+  try {
+    localStorage.setItem(PIN_KEY_PREFIX + userId, JSON.stringify(ids));
+  } catch {
+    // 存储失败仅影响下次登录的置顶状态
+  }
+}
+
 // 会话列表 + 当前选中会话 + 已读位置（AGENTS.md §7）
 interface SessionState {
   sessions: ChatSessionInfo[];
@@ -103,6 +127,10 @@ interface SessionState {
   // 会话列表是否已成功加载（用于串行化：列表渲染后再建 WS）
   sessionsLoaded: boolean;
   readCursors: Record<string, ReadCursor>;
+  // 置顶会话 id（本地持久化）
+  pinnedIds: string[];
+  loadPinned: (userId: string) => void;
+  togglePin: (sessionId: string) => void;
   setSessions: (sessions: ChatSessionInfo[]) => void;
   setSessionsLoaded: (loaded: boolean) => void;
   setActive: (id: string) => void;
@@ -120,6 +148,16 @@ export const useSessionStore = create<SessionState>((set) => ({
   activeSessionId: null,
   sessionsLoaded: false,
   readCursors: {},
+  pinnedIds: [],
+  loadPinned: (userId) => set({ pinnedIds: loadPinnedStored(userId) }),
+  togglePin: (sessionId) =>
+    set((state) => {
+      const pinnedIds = state.pinnedIds.includes(sessionId)
+        ? state.pinnedIds.filter((id) => id !== sessionId)
+        : [...state.pinnedIds, sessionId];
+      savePinnedStored(pinnedIds);
+      return { pinnedIds };
+    }),
   setSessions: (sessions) =>
     set((state) => {
       const readCursors = seedCursors(state.readCursors, sessions);
