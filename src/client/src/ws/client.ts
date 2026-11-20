@@ -14,8 +14,6 @@ let heartbeatTimer: number | undefined;
 let reconnectTimer: number | undefined;
 let attempt = 0;
 let manualClose = false;
-// 首次连接不补拉（登录时已拉过一次），仅重连后按 §6.8 补齐
-let everConnected = false;
 
 function wsUrl(): string {
   const base = import.meta.env.VITE_WS_BASE || "ws://127.0.0.1:9001";
@@ -68,8 +66,10 @@ function open(): void {
     attempt = 0;
     startHeartbeat();
     useUiStore.getState().setWsError(false);
-    if (everConnected) void backfillRecent();
-    everConnected = true;
+    // 连接成功即补齐：页面加载与建连存在时序差，首次连接也可能错过刚发出的消息
+    void backfillRecent();
+    // 离线期间其他会话的预览也可能过期，这里一并刷新
+    void useSessionStore.getState().refresh();
   };
   ws.onmessage = (e: MessageEvent) => {
     if (typeof e.data === "string") dispatch(e.data);
@@ -111,7 +111,18 @@ export function disconnectWs(): void {
   const cur = socket;
   socket = null;
   attempt = 0;
-  everConnected = false;
   useUiStore.getState().setWsError(false);
   cur?.close();
 }
+
+// 页面回到前台：连接若已断开则重连，否则补拉一次，避免休眠 / 切网期间漏消息
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (!useAuthStore.getState().token) return;
+  if (socket?.readyState === WebSocket.OPEN) {
+    void backfillRecent();
+    void useSessionStore.getState().refresh();
+  } else {
+    connectWs();
+  }
+});
