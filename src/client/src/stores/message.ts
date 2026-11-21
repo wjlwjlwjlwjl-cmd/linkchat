@@ -10,8 +10,10 @@ interface MessageState {
   appendMessage: (sessionId: string, msg: MessageInfo) => void;
   appendOptimistic: (sessionId: string, msg: LocalMessage) => void;
   markSent: (sessionId: string, messageId: string) => void;
+  // 发送成功后用服务端 messageId 替换本地临时 id，保证后续拉取能按 id 去重
+  confirmSent: (sessionId: string, tempId: string, serverId: string) => void;
   markSending: (sessionId: string, messageId: string) => void;
-  markFailed: (sessionId: string, tempId: string) => void;
+  markFailed: (sessionId: string, tempId: string, failReason?: string) => void;
   dedupeById: (sessionId: string, incoming: MessageInfo[]) => void;
 }
 
@@ -77,14 +79,57 @@ export const useMessageStore = create<MessageState>((set) => ({
     set((state) => ({
       messages: updateStatus(state.messages, sessionId, messageId, "sent"),
     })),
+  confirmSent: (sessionId, tempId, serverId) =>
+    set((state) => {
+      const cur = state.messages[sessionId];
+      if (!cur) return state;
+      // 服务端副本可能已通过重连补齐先到：此时直接丢弃本地临时消息
+      const hasServer = cur.some((m) => m.messageId === serverId);
+      let replaced = false;
+      const next: LocalMessage[] = [];
+      for (const m of cur) {
+        if (m.messageId !== tempId) {
+          next.push(m);
+          continue;
+        }
+        replaced = true;
+        if (!hasServer) {
+          next.push({ ...m, messageId: serverId, status: "sent" });
+        }
+      }
+      if (!replaced) return state;
+      return {
+        messages: { ...state.messages, [sessionId]: next.sort(compare) },
+      };
+    }),
   markSending: (sessionId, messageId) =>
-    set((state) => ({
-      messages: updateStatus(state.messages, sessionId, messageId, "sending"),
-    })),
-  markFailed: (sessionId, tempId) =>
-    set((state) => ({
-      messages: updateStatus(state.messages, sessionId, tempId, "failed"),
-    })),
+    set((state) => {
+      const cur = state.messages[sessionId];
+      if (!cur) return state;
+      return {
+        messages: {
+          ...state.messages,
+          [sessionId]: cur.map((m) =>
+            m.messageId === messageId
+              ? { ...m, status: "sending", failReason: undefined }
+              : m,
+          ),
+        },
+      };
+    }),
+  markFailed: (sessionId, tempId, failReason) =>
+    set((state) => {
+      const cur = state.messages[sessionId];
+      if (!cur) return state;
+      return {
+        messages: {
+          ...state.messages,
+          [sessionId]: cur.map((m) =>
+            m.messageId === tempId ? { ...m, status: "failed", failReason } : m,
+          ),
+        },
+      };
+    }),
   // 只对服务端 messageId 去重，临时 id 不参与
   dedupeById: (sessionId, incoming) =>
     set((state) => {

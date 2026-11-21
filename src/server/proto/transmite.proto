@@ -14,6 +14,8 @@ message NewMessageReq {
 message NewMessageRsp{
     bool success = 1;
     string errmsg = 2;
+    // 服务端生成的消息 id：发送方用它替换本地临时 id，避免本地消息与服务端消息重复展示
+    string message_id = 3;
 }
 
 //这个用于内部的通信,生成完整的消息信息，并获取消息的转发人员列表

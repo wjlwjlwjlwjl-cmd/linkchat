@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import {
   addFriend,
   getChatSessionList,
+  getFriendApplyStatus,
   getFriendList,
   getSingleChatSession,
 } from "@/api/friend";
@@ -57,6 +58,22 @@ export function ContactCardPopup({
       cancelled = true;
     };
   }, [user.userId]);
+
+  // 非好友时再确认是否已发过待处理申请，避免重复申请
+  useEffect(() => {
+    if (isFriend !== false || sent) return;
+    let cancelled = false;
+    getFriendApplyStatus(user.userId)
+      .then((rsp) => {
+        if (!cancelled && rsp.success === true && rsp.pending === true) {
+          setSent(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user.userId, isFriend, sent]);
 
   // 垂直方向按卡片实际高度收敛到视口内
   const measure = useCallback(

@@ -185,6 +185,18 @@ export function mockGetSingleChatSession(
   });
 }
 
+export function mockCreateChatSession(
+  chatSessionName: string,
+  _memberIdList: string[],
+): Promise<ApiRsp & { chatSessionId: string }> {
+  const chatSessionId = `s_group_${Date.now()}`;
+  sessions.unshift({
+    chatSessionId,
+    chatSessionName,
+  });
+  return Promise.resolve({ success: true, errmsg: "", chatSessionId });
+}
+
 // 好友申请（mock）：用内存数组模拟待处理事件
 const pendingEvents: FriendEvent[] = [];
 
@@ -196,6 +208,10 @@ export function mockAddFriend(
     errmsg: "",
     notifyEventId: `mock_apply_${respondentId}_${Date.now()}`,
   });
+}
+
+export function mockRemoveFriend(_peerId: string): Promise<ApiRsp> {
+  return Promise.resolve({ success: true, errmsg: "" });
 }
 
 export function mockGetPendingFriendEvents(): Promise<

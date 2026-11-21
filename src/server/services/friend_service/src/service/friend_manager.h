@@ -22,6 +22,7 @@ public:
 
     ::linkchat::FriendRemoveRsp FriendRemove(const std::string& user_id, const std::string& peer_id);
     ::linkchat::FriendAddRsp FriendAdd(const std::string& user_id, const std::string& respondent_id);
+    ::linkchat::CheckFriendApplyRsp CheckFriendApply(const std::string& user_id, const std::string& peer_id);
     ::linkchat::FriendAddProcessRsp FriendAddProcess(const std::string& notify_event_id, bool agree, 
         const std::string& apply_user_id, const std::string& user_id);
     ::linkchat::GetPendingFriendEventListRsp GetPendingFriendEventList(const std::string& user_id);

@@ -74,6 +74,8 @@ export type MessageStatus = "sending" | "sent" | "failed";
 // 本地消息：服务端 MessageInfo + 发送状态（临时 id 以 temp- 开头）
 export interface LocalMessage extends MessageInfo {
   status: MessageStatus;
+  // 发送失败的原因（如被对方删除），展示在失败消息左侧
+  failReason?: string;
 }
 
 // 发送消息请求体（POST /transmite/publish，body 为 proto3 JSON，字段 camelCase）

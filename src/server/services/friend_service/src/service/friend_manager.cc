@@ -79,6 +79,15 @@ FriendManager::FriendAdd(const std::string &user_id,
     return response;
 }
 
+::linkchat::CheckFriendApplyRsp
+FriendManager::CheckFriendApply(const std::string &user_id,
+                                const std::string &peer_id) {
+    ::linkchat::CheckFriendApplyRsp response;
+    response.set_success(true);
+    response.set_pending(dao_->HasPendingApply(user_id, peer_id));
+    return response;
+}
+
 ::linkchat::FriendAddProcessRsp
 FriendManager::FriendAddProcess(const std::string &notify_event_id, bool agree,
                                 const std::string &apply_user_id,

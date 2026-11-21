@@ -10,6 +10,7 @@ import type { LocalMessage } from "@/types";
 export function useSendMessage(sessionId: string) {
   const appendOptimistic = useMessageStore((s) => s.appendOptimistic);
   const markSent = useMessageStore((s) => s.markSent);
+  const confirmSent = useMessageStore((s) => s.confirmSent);
   const markSending = useMessageStore((s) => s.markSending);
   const markFailed = useMessageStore((s) => s.markFailed);
   const myId = useAuthStore((s) => s.profile?.userId);
@@ -28,11 +29,17 @@ export function useSendMessage(sessionId: string) {
         },
       });
       if (rsp.success === true) {
-        markSent(sessionId, messageId);
+        // 用服务端 messageId 替换临时 id：之后拉取最近消息时才能按 id 去重，
+        // 否则本地乐观消息与服务端消息会同时展示成两条
+        const serverId = rsp.messageId;
+        if (serverId) confirmSent(sessionId, messageId, serverId);
+        else markSent(sessionId, messageId);
         // 自己发的消息不会收到 NEW_MESSAGE 推送，需在此同步会话预览
         const sent = useMessageStore
           .getState()
-          .messages[sessionId]?.find((m) => m.messageId === messageId);
+          .messages[sessionId]?.find(
+            (m) => m.messageId === (serverId || messageId),
+          );
         if (sent) {
           useSessionStore.getState().updatePrevMessage(sessionId, sent);
           // 仍停留在该会话时，自己发的消息不点亮未读红点
@@ -41,10 +48,14 @@ export function useSendMessage(sessionId: string) {
           }
         }
       } else {
-        markFailed(sessionId, messageId);
+        markFailed(sessionId, messageId, rsp.errmsg || "消息发送失败");
       }
-    } catch {
-      markFailed(sessionId, messageId);
+    } catch (err) {
+      markFailed(
+        sessionId,
+        messageId,
+        err instanceof Error ? err.message : "消息发送失败",
+      );
     }
   };
 

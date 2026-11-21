@@ -35,6 +35,17 @@ message FriendAddRsp {
     string notify_event_id = 3; //通知事件id
 }
 
+//查询是否已向对方发送过待处理的好友申请
+message CheckFriendApplyReq {
+    string user_id = 1; //申请人id
+    string peer_id = 2; //被申请人id
+}
+message CheckFriendApplyRsp {
+    bool success = 1;
+    string errmsg = 2;
+    bool pending = 3; //是否已存在待处理申请
+}
+
 //好友申请的处理
 message FriendAddProcessReq {
     string notify_event_id = 1; //通知事件id
@@ -130,6 +141,9 @@ service FriendService {
 
     //添加好友--发送好友申请 done
     rpc FriendAdd(FriendAddReq) returns (FriendAddRsp);
+
+    //查询是否已向对方发送过待处理的好友申请
+    rpc CheckFriendApply(CheckFriendApplyReq) returns (CheckFriendApplyRsp);
 
     //好友申请的处理 done
     rpc FriendAddProcess(FriendAddProcessReq) returns (FriendAddProcessRsp);

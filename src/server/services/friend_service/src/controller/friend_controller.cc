@@ -33,6 +33,15 @@ void FriendController::FriendAdd(::google::protobuf::RpcController* controller,
     response->CopyFrom(ret);
 }
 
+void FriendController::CheckFriendApply(::google::protobuf::RpcController* controller,
+                    const ::linkchat::CheckFriendApplyReq* request,
+                    ::linkchat::CheckFriendApplyRsp* response,
+                    ::google::protobuf::Closure* done){
+    ::brpc::ClosureGuard guard(done);
+    auto ret = friend_service_->CheckFriendApply(request->user_id(), request->peer_id());
+    response->CopyFrom(ret);
+}
+
 void FriendController::FriendAddProcess(::google::protobuf::RpcController* controller,
                     const ::linkchat::FriendAddProcessReq* request,
                     ::linkchat::FriendAddProcessRsp* response,

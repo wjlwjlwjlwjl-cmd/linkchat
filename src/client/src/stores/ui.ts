@@ -32,6 +32,9 @@ function applyTheme(mode: ThemeMode, systemDark: boolean): void {
   root.style.colorScheme = dark ? "dark" : "light";
 }
 
+// 启动即应用已保存主题，避免刷新后未挂载 Rail 时停留在浅色（登录页也需要正确的深浅色）
+applyTheme(readThemeMode(), systemPrefersDark());
+
 // UI 状态：会话列表拖拽宽度（AGENTS.md §2.4，M0 静态默认 260）
 interface UiState {
   listWidth: number;
@@ -45,6 +48,9 @@ interface UiState {
   // 左侧栏展示会话列表还是通讯录
   sideView: SideView;
   setSideView: (sideView: SideView) => void;
+  // 好友申请独立弹窗（从 Rail 图标打开，不占用侧边栏）
+  friendRequestsOpen: boolean;
+  setFriendRequestsOpen: (open: boolean) => void;
   // 通讯录中选中的好友（在详情区展示资料页）
   selectedContact: UserInfo | null;
   setSelectedContact: (contact: UserInfo | null) => void;
@@ -68,6 +74,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   setInfoOpen: (infoOpen) => set({ infoOpen }),
   sideView: "chats",
   setSideView: (sideView) => set({ sideView }),
+  friendRequestsOpen: false,
+  setFriendRequestsOpen: (friendRequestsOpen) => set({ friendRequestsOpen }),
   selectedContact: null,
   setSelectedContact: (selectedContact) => set({ selectedContact }),
   themeMode: readThemeMode(),

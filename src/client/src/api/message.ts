@@ -54,8 +54,10 @@ export function searchMessages(p: {
 }
 
 // 发送消息（POST /transmite/publish，body 为 proto3 JSON）
-// 无服务端 messageId 返回，发送方靠本地临时 id 标识（AGENTS.md §6.6）
-export function publishMessage(body: PublishReq): Promise<ApiRsp> {
+// 成功时返回服务端 messageId，发送方用它替换本地临时 id（AGENTS.md §6.6）
+export function publishMessage(
+  body: PublishReq,
+): Promise<ApiRsp & { messageId?: string }> {
   if (USE_MOCK) return mockPublishMessage();
   return request("/transmite/publish", {
     method: "POST",

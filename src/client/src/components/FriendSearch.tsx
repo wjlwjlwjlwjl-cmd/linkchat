@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, MessageSquare, Plus, Search, X } from "lucide-react";
 import { getChatSessionMembers, searchFriends } from "@/api/friend";
 import { useAuthStore } from "@/stores/auth";
 import { useSessionStore } from "@/stores/session";
 import { Avatar } from "@/components/Avatar";
 import { ContactCardPopup } from "@/components/ContactCardPopup";
-import { cn } from "@/components/ui/cn";
+import { GroupCreateDialog } from "@/components/GroupCreateDialog";
 import type { ChatSessionInfo, UserInfo } from "@/types";
 
 const PANEL_WIDTH = 280;
@@ -70,6 +70,10 @@ export function FriendSearch() {
     user: UserInfo;
     rect: DOMRect;
   } | null>(null);
+  // 搜索框右侧「+」菜单与发起群聊弹窗
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [groupOpen, setGroupOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -96,7 +100,19 @@ export function FriendSearch() {
     setKeyword("");
     setResults([]);
     setCard(null);
+    setMenuOpen(false);
   };
+
+  // 点击「+」菜单和按钮以外的区域时收起菜单
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [menuOpen]);
 
   // 打开浮层并按需加载群成员（用于判断「包含搜索到的联系人」）
   useEffect(() => {
@@ -312,48 +328,81 @@ export function FriendSearch() {
 
   return (
     <div ref={wrapRef} className="shrink-0 px-3 py-2">
-      <div
-        className={cn(
-          "flex h-8 items-center rounded-base px-2",
-          open && "ring-1 ring-brand",
-        )}
-        style={{ background: "var(--search-bg)" }}
-      >
-        <Search size={16} strokeWidth={1.5} className="text-secondary" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={keyword}
-          onChange={(e) => {
-            const value = e.target.value;
-            setKeyword(value);
-            // 清空时直接复位，避免沿用上一次结果
-            if (value.trim() === "") {
-              searchSeq.current += 1;
-              setResults([]);
-              setLoading(false);
-            }
-          }}
-          onFocus={openPanel}
-          onClick={() => {
-            if (!open) openPanel();
-          }}
-          placeholder="搜索"
-          className="ml-2 w-full bg-transparent text-sm text-primary placeholder:text-tertiary focus:outline-none"
-        />
-        {keyword !== "" && (
+      <div className="flex items-center gap-2">
+        <div
+          className="flex h-8 min-w-0 flex-1 items-center rounded-base px-2"
+          style={{ background: "var(--search-bg)" }}
+        >
+          <Search size={16} strokeWidth={1.5} className="text-secondary" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={keyword}
+            onChange={(e) => {
+              const value = e.target.value;
+              setKeyword(value);
+              // 清空时直接复位，避免沿用上一次结果
+              if (value.trim() === "") {
+                searchSeq.current += 1;
+                setResults([]);
+                setLoading(false);
+              }
+            }}
+            onFocus={openPanel}
+            onClick={() => {
+              if (!open) openPanel();
+            }}
+            placeholder="搜索"
+            className="ml-2 w-full min-w-0 bg-transparent text-sm text-primary placeholder:text-tertiary focus:outline-none"
+          />
+          {keyword !== "" && (
+            <button
+              type="button"
+              aria-label="清空搜索"
+              onClick={() => {
+                setKeyword("");
+                inputRef.current?.focus();
+              }}
+              className="text-tertiary hover:text-secondary"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <div ref={menuRef} className="relative shrink-0">
           <button
             type="button"
-            aria-label="清空搜索"
+            aria-label="更多操作"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
             onClick={() => {
-              setKeyword("");
-              inputRef.current?.focus();
+              setOpen(false);
+              setMenuOpen((v) => !v);
             }}
-            className="text-tertiary hover:text-secondary"
+            className="hv-list flex h-8 w-8 items-center justify-center rounded-base border border-line text-secondary"
           >
-            <X size={14} />
+            <Plus size={18} strokeWidth={1.5} />
           </button>
-        )}
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-10 z-50 w-40 overflow-hidden rounded-lg border border-line bg-panel py-1 shadow-popup"
+            >
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setGroupOpen(true);
+                }}
+                className="hv-list flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-primary"
+              >
+                <MessageSquare size={18} strokeWidth={1.5} />
+                发起群聊
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       {panel}
       {open && card && (
@@ -363,6 +412,7 @@ export function FriendSearch() {
           onClose={() => setCard(null)}
         />
       )}
+      {groupOpen && <GroupCreateDialog onClose={() => setGroupOpen(false)} />}
     </div>
   );
 }

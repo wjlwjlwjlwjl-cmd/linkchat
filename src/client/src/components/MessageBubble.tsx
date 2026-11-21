@@ -7,7 +7,7 @@ import { useUserStore } from "@/stores/user";
 import { Avatar } from "@/components/Avatar";
 import { UserInfoPopup } from "@/components/UserInfoPopup";
 import { cn } from "@/components/ui/cn";
-import { useAvatarUrl } from "@/hooks/useAvatarUrl";
+import { useFileUrlStore } from "@/stores/fileUrl";
 import { imageMimeType, isImageFileName, formatFileSize } from "@/lib/file";
 import type { LocalMessage, UserInfo } from "@/types";
 
@@ -53,9 +53,11 @@ export function MessageBubble({
   const isFile = fileMessage !== undefined && !isImage;
   const fileSizeText = formatFileSize(Number(fileMessage?.fileSize ?? 0));
   const imageContent = fileMessage?.fileContent ?? "";
-  // 历史消息只有 fileId，走预签名 URL；刚发送 / 推送的消息带 base64 内容，直接展示
-  const imageUrl = useAvatarUrl(
-    isImage && !imageContent ? fileMessage?.fileId : undefined,
+  // 历史消息只有 fileId，地址由消息列表的批量预签名接口填充；刚发送 / 推送的消息带 base64 内容，直接展示
+  const imageUrl = useFileUrlStore((s) =>
+    isImage && !imageContent && fileMessage?.fileId
+      ? (s.urls[fileMessage.fileId]?.url ?? "")
+      : "",
   );
   const imageSrc = imageContent
     ? `data:${imageMimeType(fileMessage?.fileName)};base64,${imageContent}`
@@ -139,6 +141,18 @@ export function MessageBubble({
           </button>
         </div>
       )}
+      {/* 发送失败：红叹号放在气泡左侧；原因文案由消息区末尾居中展示（AGENTS.md §6.6） */}
+      {isSelf && msg.status === "failed" && (
+        <button
+          type="button"
+          aria-label="发送失败，点击重发"
+          onClick={() => onRetry?.(msg)}
+          className="mb-1 mr-2 self-end rounded-base p-0.5"
+          style={{ color: "var(--color-danger)" }}
+        >
+          <AlertCircle size={16} strokeWidth={1.5} />
+        </button>
+      )}
       <div className="flex max-w-[60%] flex-col">
         {isGroup && !isSelf && (
           <span className="mb-1 text-xs text-secondary">{nickname}</span>
@@ -207,22 +221,11 @@ export function MessageBubble({
           )}
         </div>
       </div>
-      {/* 发送状态（AGENTS.md §6.6）：sending 提示，failed 红叹号可点击重发 */}
+      {/* 发送状态（AGENTS.md §6.6）：发送中提示 */}
       {isSelf && msg.status === "sending" && (
         <span className="mb-1 ml-2 self-end pb-1 text-xs text-tertiary">
           发送中
         </span>
-      )}
-      {isSelf && msg.status === "failed" && (
-        <button
-          type="button"
-          aria-label="发送失败，点击重发"
-          onClick={() => onRetry?.(msg)}
-          className="mb-1 ml-2 self-end rounded-base p-0.5"
-          style={{ color: "var(--color-danger)" }}
-        >
-          <AlertCircle size={16} strokeWidth={1.5} />
-        </button>
       )}
       {isSelf && myId && (
         <div className="ml-3 mt-1">

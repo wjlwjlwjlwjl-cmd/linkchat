@@ -9,10 +9,12 @@ import {
   Palette,
   Settings,
   Sun,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { logout } from "@/api/user";
 import { useAuthStore } from "@/stores/auth";
+import { useFriendStore } from "@/stores/friend";
 import { useMessageStore } from "@/stores/message";
 import { hasUnread, useSessionStore } from "@/stores/session";
 import { useUiStore, type ThemeMode } from "@/stores/ui";
@@ -33,6 +35,9 @@ export function Rail() {
   const setThemeMode = useUiStore((s) => s.setThemeMode);
   const sideView = useUiStore((s) => s.sideView);
   const setSideView = useUiStore((s) => s.setSideView);
+  const friendRequestsOpen = useUiStore((s) => s.friendRequestsOpen);
+  const setFriendRequestsOpen = useUiStore((s) => s.setFriendRequestsOpen);
+  const pendingApplyCount = useFriendStore((s) => s.pendingApplies.length);
   const sessions = useSessionStore((s) => s.sessions);
   const readCursors = useSessionStore((s) => s.readCursors);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
@@ -170,6 +175,29 @@ export function Rail() {
           }
         >
           <Users size={24} strokeWidth={1.5} />
+        </button>
+        <button
+          type="button"
+          aria-label="新的朋友"
+          aria-haspopup="dialog"
+          aria-expanded={friendRequestsOpen}
+          onClick={() => {
+            setProfileOpen(false);
+            setMenuOpen(false);
+            setFriendRequestsOpen(!friendRequestsOpen);
+          }}
+          className="relative rounded-base p-2 hv-rail"
+          style={{ color: "var(--rail-icon)" }}
+        >
+          <UserPlus size={24} strokeWidth={1.5} />
+          {pendingApplyCount > 0 && (
+            <span
+              aria-label={`${pendingApplyCount} 条好友申请`}
+              className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] leading-4 text-inverse"
+            >
+              {pendingApplyCount > 99 ? "99+" : pendingApplyCount}
+            </span>
+          )}
         </button>
       </div>
 

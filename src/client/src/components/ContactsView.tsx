@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronRight, Loader2 } from "lucide-react";
-import {
-  getFriendList,
-  getPendingFriendEvents,
-  processFriendEvent,
-} from "@/api/friend";
+import { getFriendList } from "@/api/friend";
 import { useFriendStore } from "@/stores/friend";
 import { useSessionStore } from "@/stores/session";
 import { useUiStore } from "@/stores/ui";
@@ -12,7 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { FriendSearch } from "@/components/FriendSearch";
 import { cn } from "@/components/ui/cn";
 import { groupByInitial } from "@/lib/pinyin";
-import type { ChatSessionInfo, FriendEvent, UserInfo } from "@/types";
+import type { ChatSessionInfo, UserInfo } from "@/types";
 
 // 可折叠分组（群聊 / 联系人）：标题行 + 数量，展开后按拼音首字母分组
 function Section({
@@ -106,39 +102,18 @@ export function ContactsView() {
 
   const [groupsOpen, setGroupsOpen] = useState(true);
   const [contactsOpen, setContactsOpen] = useState(true);
-  const [requestsOpen, setRequestsOpen] = useState(true);
   const [friends, setFriends] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const [applyError, setApplyError] = useState<string | null>(null);
 
-  const pendingApplies = useFriendStore((s) => s.pendingApplies);
-  const setPendingApplies = useFriendStore((s) => s.setPendingApplies);
-  const removePendingApply = useFriendStore((s) => s.removePendingApply);
-  const refreshSessions = useSessionStore((s) => s.refresh);
+  // 同意好友申请后自增，触发好友列表重新拉取
+  const friendListVersion = useFriendStore((s) => s.friendListVersion);
 
   const groups = useMemo(
     () => sessions.filter((s) => !s.singleChatFriendId),
     [sessions],
   );
-
-  // 待处理好友申请全量拉取（WS 推送会实时补进来）
-  useEffect(() => {
-    let cancelled = false;
-    getPendingFriendEvents()
-      .then((rsp) => {
-        if (cancelled || rsp.success !== true) return;
-        setPendingApplies(rsp.event ?? []);
-      })
-      .catch(() => {
-        // 拉取失败时保留 WS 已推送的申请
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [setPendingApplies]);
 
   // 好友列表（GET /friend/list）
   useEffect(() => {
@@ -162,7 +137,7 @@ export function ContactsView() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [reloadKey, friendListVersion]);
 
   // 联系人 → 单聊会话（用于进入聊天；资料页里的「发消息」会按需创建会话）
   const sessionByFriendId = useMemo(() => {
@@ -181,87 +156,10 @@ export function ContactsView() {
 
   const groupName = (s: ChatSessionInfo) => s.chatSessionName || "未命名会话";
 
-  // 同意/拒绝好友申请：成功后移除条目；同意时刷新会话与联系人
-  const handleProcess = async (event: FriendEvent, agree: boolean) => {
-    if (processingId) return;
-    setProcessingId(event.eventId);
-    setApplyError(null);
-    try {
-      const rsp = await processFriendEvent(
-        event.eventId,
-        agree,
-        event.sender?.userId ?? "",
-      );
-      if (rsp.success !== true) {
-        setApplyError(rsp.errmsg || "处理好友申请失败");
-        return;
-      }
-      removePendingApply(event.eventId);
-      if (agree) {
-        await refreshSessions();
-        setReloadKey((k) => k + 1);
-      }
-    } catch (err: unknown) {
-      setApplyError(err instanceof Error ? err.message : "处理好友申请失败");
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
   return (
     <div className="flex h-full flex-col">
       <FriendSearch />
       <div className="scroll-area scroll-contain min-h-0 flex-1 overflow-y-auto">
-        {pendingApplies.length > 0 && (
-          <Section
-            title="新的朋友"
-            count={pendingApplies.length}
-            open={requestsOpen}
-            onToggle={() => setRequestsOpen((open) => !open)}
-          >
-            {applyError && (
-              <div className="px-3 pb-1 pt-1 text-xs text-danger">
-                {applyError}
-              </div>
-            )}
-            {pendingApplies.map((event) => {
-              const sender = event.sender;
-              const name = sender?.nickname || "未命名";
-              const busy = processingId === event.eventId;
-              return (
-                <div
-                  key={event.eventId}
-                  className="flex h-14 items-center gap-3 px-3"
-                >
-                  <Avatar fileId={sender?.avatar} name={name} size={40} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-primary">{name}</p>
-                    <p className="truncate text-xs text-tertiary">
-                      请求添加你为好友
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void handleProcess(event, true)}
-                    className="shrink-0 rounded-base bg-brand px-2 py-1 text-xs text-inverse disabled:opacity-60"
-                  >
-                    同意
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void handleProcess(event, false)}
-                    className="hv-list shrink-0 rounded-base px-2 py-1 text-xs text-secondary disabled:opacity-60"
-                  >
-                    拒绝
-                  </button>
-                </div>
-              );
-            })}
-          </Section>
-        )}
-
         <Section
           title="群聊"
           count={groups.length}
@@ -339,19 +237,12 @@ export function ContactsView() {
                     onClick={() => setSelectedContact(user)}
                     className={cn(
                       "flex h-14 w-full items-center gap-3 px-3 text-left",
-                      selected
-                        ? "bg-brand text-inverse"
-                        : "hv-list text-primary",
+                      selected ? "bg-list-active" : "hv-list",
                     )}
                     title={hasSession ? `与 ${name} 聊天` : name}
                   >
                     <Avatar fileId={user.avatar} name={name} size={40} />
-                    <span
-                      className={cn(
-                        "min-w-0 flex-1 truncate text-sm",
-                        selected ? "text-inverse" : "text-primary",
-                      )}
-                    >
+                    <span className="min-w-0 flex-1 truncate text-sm text-primary">
                       {name}
                     </span>
                   </button>

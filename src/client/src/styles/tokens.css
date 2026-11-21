@@ -110,6 +110,20 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
+
+  /* 1.10 登录/注册页（微信风格；深色版本见 [data-theme="dark"]） */
+  --login-bg: #f7f7f7;
+  --login-card: #ffffff;
+  --login-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --login-title: #191919;
+  --login-placeholder: #b2b2b2;
+  --login-primary: #07c160;
+  --login-primary-hover: #06ad56;
+  --login-primary-active: #059e4d;
+  --login-primary-soft: rgba(7, 193, 96, 0.08);
+  --login-input-bg: #f2f2f2;
+  --login-border: #e5e5e5;
+  --login-link: #576b95;
 }
 
 /* ========================================================================
@@ -151,6 +165,17 @@
   --empty-icon: #3a3a3a;
   --scrollbar-thumb: rgba(255, 255, 255, 0.18);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
+
+  /* 登录/注册页：深色版本（主色保持微信绿，其余换成深色中性色） */
+  --login-bg: #111111;
+  --login-card: #1e1e1e;
+  --login-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --login-title: #e5e5e5;
+  --login-placeholder: #6b6b6b;
+  --login-primary-soft: rgba(7, 193, 96, 0.14);
+  --login-input-bg: #2a2a2a;
+  --login-border: #3a3a3a;
+  --login-link: #7a9cc6;
 }
 
 /* ========================================================================
@@ -199,8 +224,12 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
+  outline: none;
+}
+
+/* 登录卡片轻投影：shadow-[var(...)] 会被 Tailwind 当成阴影颜色，这里用类名直出 */
+.login-card {
+  box-shadow: var(--login-card-shadow);
 }
 
 /* 浏览器自动填充在深色下会强加橄榄黄底，用内阴影覆盖回输入框 token 底色 */

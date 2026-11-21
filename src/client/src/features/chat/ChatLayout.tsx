@@ -3,14 +3,16 @@ import { useSessionStore } from "@/stores/session";
 import { useMessageStore } from "@/stores/message";
 import { useUiStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
+import { useFriendStore } from "@/stores/friend";
 import { useUserStore } from "@/stores/user";
-import { getChatSessionList } from "@/api/friend";
+import { getChatSessionList, getPendingFriendEvents } from "@/api/friend";
 import { getRecent } from "@/api/message";
 import { getMultiUserInfo, getProfile } from "@/api/user";
 import { Rail } from "@/components/Rail";
 import { SessionList } from "@/components/SessionList";
 import { ContactsView } from "@/components/ContactsView";
 import { ContactProfileView } from "@/components/ContactProfileView";
+import { FriendRequestsDialog } from "@/components/FriendRequestsDialog";
 import { ChatInfoPanel } from "@/components/ChatInfoPanel";
 import { MessageHeader } from "@/components/MessageHeader";
 import { MessageList } from "@/components/MessageList";
@@ -47,6 +49,7 @@ export function ChatLayout() {
   const setInfoOpen = useUiStore((s) => s.setInfoOpen);
   const sideView = useUiStore((s) => s.sideView);
   const selectedContact = useUiStore((s) => s.selectedContact);
+  const setPendingApplies = useFriendStore((s) => s.setPendingApplies);
   const users = useUserStore((s) => s.users);
   const upsertUsers = useUserStore((s) => s.upsertUsers);
   const listWidth = useUiStore((s) => s.listWidth);
@@ -72,6 +75,22 @@ export function ChatLayout() {
   useEffect(() => {
     if (profileUserId) loadReadCursors(profileUserId);
   }, [profileUserId, loadReadCursors]);
+
+  // 待处理好友申请全量拉取（在线时 WS 推送会实时补进 store）
+  useEffect(() => {
+    let cancelled = false;
+    getPendingFriendEvents()
+      .then((rsp) => {
+        if (!cancelled && rsp.success === true)
+          setPendingApplies(rsp.event ?? []);
+      })
+      .catch(() => {
+        // 拉取失败时保留 WS 已推送的申请
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setPendingApplies]);
 
   useEffect(() => {
     if (profileUserId) loadPinned(profileUserId);
@@ -177,33 +196,28 @@ export function ChatLayout() {
   const profileContact = sideView === "contacts" ? selectedContact : null;
 
   // 侧边栏预览已前进但详情里没有这条消息时（离线漏推、补齐请求早于落库等），
-  // 以预览消息为准补拉一次，保证侧边栏与详情区一致
-  const syncedRef = useRef<string | null>(null);
-  const syncRetryRef = useRef<number | undefined>(undefined);
+  // 以预览消息为准自动补拉，保证侧边栏与详情区一致。
+  // 同一条预览最多补拉 3 次，间隔 1s，避免落库延迟导致详情区一直空白。
+  const syncRef = useRef<{ key: string; attempts: number }>({
+    key: "",
+    attempts: 0,
+  });
   useEffect(() => {
     if (!activeId) return;
     const prevMessage = activeSession?.prevMessage;
     if (!prevMessage) return;
-    const loaded = activeMessages?.some(
-      (m) => m.messageId === prevMessage.messageId,
-    );
     const key = `${activeId}:${prevMessage.messageId}`;
-    if (loaded) {
-      syncedRef.current = key;
+    if (activeMessages?.some((m) => m.messageId === prevMessage.messageId)) {
+      syncRef.current = { key, attempts: 0 };
       return;
     }
-    if (syncedRef.current === key) return;
-    syncedRef.current = key;
-    void loadRecent(activeId);
-    // 预览与消息落库存在时序差：稍后仍缺失时再补一次
-    window.clearTimeout(syncRetryRef.current);
-    syncRetryRef.current = window.setTimeout(() => {
-      const msgs = useMessageStore.getState().messages[activeId];
-      if (msgs?.some((m) => m.messageId === prevMessage.messageId)) return;
-      void loadRecent(activeId);
-    }, 1200);
+    if (syncRef.current.key !== key) syncRef.current = { key, attempts: 0 };
+    if (syncRef.current.attempts >= 3) return;
+    syncRef.current.attempts += 1;
+    const delay = syncRef.current.attempts === 1 ? 0 : 1000;
+    const timer = window.setTimeout(() => void loadRecent(activeId), delay);
+    return () => window.clearTimeout(timer);
   }, [activeId, activeSession?.prevMessage, activeMessages, loadRecent]);
-  useEffect(() => () => window.clearTimeout(syncRetryRef.current), []);
 
   // 重试：先回到 loading 态再触发重新拉取（避免在 effect 内同步 setState）
   const retry = () => {
@@ -232,7 +246,10 @@ export function ChatLayout() {
         ) : activeSession ? (
           <>
             <MessageHeader session={activeSession} />
-            <MessageList session={activeSession} />
+            <MessageList
+              key={activeSession.chatSessionId}
+              session={activeSession}
+            />
             <InputArea sessionId={activeSession.chatSessionId} />
           </>
         ) : loading ? (
@@ -255,6 +272,7 @@ export function ChatLayout() {
           />
         </div>
       )}
+      <FriendRequestsDialog />
     </div>
   );
 }

@@ -79,6 +79,14 @@ GetTransmitTargetDTO TransmiteManager::NewMessage(const NewMessageDTO& req){
 
     std::string user_id = req.user_id; // 发送者id
 
+    // 1. 校验发送者是否有权向该会话发消息：单聊校验好友关系，群聊校验成员身份
+    std::string check_errmsg = dao_->ValidateSender(user_id, req.chat_session_id);
+    if(!check_errmsg.empty()){
+        rsp.success = false;
+        rsp.errmsg = check_errmsg;
+        return rsp;
+    }
+
     auto sender_info = dao_->GetSenderInfo(user_id); // 发送者元信息
     if(!sender_info.errmsg.empty()){
         rsp.success = false;

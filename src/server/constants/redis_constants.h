@@ -10,4 +10,7 @@ namespace redis_constants{
 
     static constexpr const char* token_key = "token:";
     static constexpr int token_expire = 60 * 60; // 1 hour, seconds
+
+    static constexpr const char* captcha_code_key = "captcha_code:";
+    static constexpr int captcha_code_expire = 2 * 60; // 2 minutes, seconds
 }

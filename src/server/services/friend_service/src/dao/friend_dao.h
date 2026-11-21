@@ -54,6 +54,12 @@ public:
     /// @return FriendAddDTO 好友添加DTO
     FriendAddDTO FriendAdd(const std::string& user_id, const std::string& respondent_id);
 
+    /// @brief 是否已存在待处理的好友申请
+    /// @param user_id 申请人 ID
+    /// @param peer_id 被申请人 ID
+    /// @return true 表示已有待处理申请
+    bool HasPendingApply(const std::string& user_id, const std::string& peer_id);
+
     /// @brief 好友申请的处理
     /// @param notify_event_id 通知事件ID
     /// @param agree 是否同意好友申请

@@ -34,6 +34,11 @@
 #include "json/json_codec.h"
 #include "connection.h"
 #include "error_msg.h"
+#include "random_id.h"
+
+#include <cctype>
+#include <random>
+#include <sstream>
 
 using message_t = server_t::message_ptr;
 
@@ -49,6 +54,7 @@ public:
     #define MSG_SEARCH "/message/search" // 搜索消息（ES）
 
     // UserService
+    #define GET_CAPTCHA "/captcha/image"
     #define GET_EMAIL_VERIFY_CODE "/login/mail_verify_code"
     #define REGISTER "/register"
     #define NICKNAME_LOGIN "/login/nickname"
@@ -67,6 +73,7 @@ public:
     #define GET_FRIEND_LIST "/friend/list"
     #define FRIEND_REMOVE "/friend/remove"
     #define FRIEND_ADD "/friend/add"
+    #define CHECK_FRIEND_APPLY "/friend/apply/status"
     #define FRIEND_ADD_PROCESS "/friend/add_process"
     #define FRIEND_SEARCH "/friend/search"
     #define GET_CHAT_SESSION_LIST "/friend/chat_session/list"
@@ -135,6 +142,8 @@ public:
         ///////////////////////////////
         // UserService
         ///////////////////////////////
+        http_server_.Get(GET_CAPTCHA, 
+            std::bind(&Gateway::GetCaptcha, this, std::placeholders::_1, std::placeholders::_2));
         http_server_.Get(GET_EMAIL_VERIFY_CODE, 
             std::bind(&Gateway::GetEmailVerifyCode, this, std::placeholders::_1, std::placeholders::_2));
         http_server_.Post(REGISTER, 
@@ -192,6 +201,10 @@ public:
         http_server_.Post(FRIEND_ADD, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
                 FriendAdd(req, res);
+            });
+        http_server_.Get(CHECK_FRIEND_APPLY,
+            [this](const ::httplib::Request& req, ::httplib::Response& res){
+                CheckFriendApply(req, res);
             });
         http_server_.Post(FRIEND_ADD_PROCESS, 
             [this](const ::httplib::Request& req, ::httplib::Response& res){
@@ -256,6 +269,7 @@ public:
 private:
     // 白名单接口不校验token
     const std::set<std::string> white_lists{
+        GET_CAPTCHA,
         GET_EMAIL_VERIFY_CODE,
         REGISTER,
         NICKNAME_LOGIN,
@@ -746,8 +760,142 @@ private:
         res.set_content(content, "application/json");
     }
 
-    // GET /login/mail_verify_code?email=<邮箱>
+    ///////////////////////////////
+    // 图形验证码
+    ///////////////////////////////
+    static std::string Base64Encode(const std::string& input){
+        static const char table[] =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        std::string output;
+        int val = 0;
+        int valb = -6;
+        for(unsigned char c : input){
+            val = (val << 8) + c;
+            valb += 8;
+            while(valb >= 0){
+                output.push_back(table[(val >> valb) & 0x3F]);
+                valb -= 6;
+            }
+        }
+        if(valb > -6){
+            output.push_back(table[((val << 8) >> (valb + 8)) & 0x3F]);
+        }
+        while(output.size() % 4 != 0){
+            output.push_back('=');
+        }
+        return output;
+    }
+
+    static std::mt19937& CaptchaRandomEngine(){
+        static thread_local std::mt19937 engine(std::random_device{}());
+        return engine;
+    }
+
+    // 4 位字符验证码，去掉 0/O、1/I 等容易混淆的字符
+    static std::string GenerateCaptchaCode(){
+        static const char chars[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        std::uniform_int_distribution<int> dis(0, sizeof(chars) - 2);
+        std::string code;
+        for(int i = 0; i < 4; ++i){
+            code.push_back(chars[dis(CaptchaRandomEngine())]);
+        }
+        return code;
+    }
+
+    static std::string BuildCaptchaSvg(const std::string& code){
+        std::uniform_int_distribution<int> x(0, 120);
+        std::uniform_int_distribution<int> y(0, 40);
+        std::uniform_int_distribution<int> shade(110, 210);
+        std::uniform_int_distribution<int> rotate(-20, 20);
+
+        std::ostringstream svg;
+        svg << "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'>";
+        svg << "<rect width='120' height='40' fill='#20242d'/>";
+        // 干扰线
+        for(int i = 0; i < 4; ++i){
+            int r = shade(CaptchaRandomEngine());
+            int g = shade(CaptchaRandomEngine());
+            int b = shade(CaptchaRandomEngine());
+            svg << "<line x1='" << x(CaptchaRandomEngine()) << "' y1='" << y(CaptchaRandomEngine())
+                << "' x2='" << x(CaptchaRandomEngine()) << "' y2='" << y(CaptchaRandomEngine())
+                << "' stroke='rgb(" << r << "," << g << "," << b << ")' stroke-width='1'/>";
+        }
+        // 字符
+        for(size_t i = 0; i < code.size(); ++i){
+            int cx = 16 + static_cast<int>(i) * 28;
+            svg << "<text x='" << cx << "' y='28' font-family='monospace' font-size='24' font-weight='bold'"
+                << " fill='#e8eef7' transform='rotate(" << rotate(CaptchaRandomEngine()) << " "
+                << cx << " 22)'>" << code[i] << "</text>";
+        }
+        svg << "</svg>";
+        return svg.str();
+    }
+
+    static bool EqualsIgnoreCase(const std::string& a, const std::string& b){
+        if(a.size() != b.size()) return false;
+        for(size_t i = 0; i < a.size(); ++i){
+            if(std::tolower(static_cast<unsigned char>(a[i])) !=
+               std::tolower(static_cast<unsigned char>(b[i]))) return false;
+        }
+        return true;
+    }
+
+    // GET /captcha/image：生成图形验证码；验证码存 Redis，图片以 data URL 返回
+    void GetCaptcha(const httplib::Request&, httplib::Response& res){
+        std::string code = GenerateCaptchaCode();
+        std::string captcha_id = random_util::GetInstanceId() + random_util::GetInstanceId();
+        std::string key = redis_constants::captcha_code_key + captcha_id;
+        try{
+            redis_template_->set(key, code,
+                std::chrono::seconds(redis_constants::captcha_code_expire));
+        }catch(const std::exception& e){
+            LOG_ERROR("Failed to save captcha: {}", e.what());
+            res.status = 500;
+            return;
+        }
+
+        Json::Value data;
+        data["success"] = true;
+        data["captchaId"] = captcha_id;
+        data["image"] = "data:image/svg+xml;base64," + Base64Encode(BuildCaptchaSvg(code));
+        res.status = 200;
+        res.set_content(JsonCodec::Serialize(data), "application/json");
+    }
+
+    // GET /login/mail_verify_code?email=<邮箱>&captcha_id=<ID>&captcha_code=<图形验证码>
     void GetEmailVerifyCode(const httplib::Request& req, httplib::Response& res){
+        std::string email = req.get_param_value("email");
+        std::string captcha_id = req.get_param_value("captcha_id");
+        std::string captcha_code = req.get_param_value("captcha_code");
+        if(email.empty()){
+            res.status = 400;
+            return;
+        }
+        // 发送邮箱验证码前必须先通过图形验证码，防止被恶意刷验证码
+        if(captcha_id.empty() || captcha_code.empty()){
+            res.status = 200;
+            res.set_content(R"({"success":false,"errmsg":"请输入图形验证码"})",
+                "application/json");
+            return;
+        }
+        std::string stored_code;
+        std::string captcha_key = redis_constants::captcha_code_key + captcha_id;
+        try{
+            auto stored = redis_template_->get(captcha_key);
+            if(stored.has_value()) stored_code = stored.value();
+            redis_template_->del(captcha_key); // 图形验证码一次性使用
+        }catch(const std::exception& e){
+            LOG_ERROR("Failed to read captcha: {}", e.what());
+            res.status = 500;
+            return;
+        }
+        if(stored_code.empty() || !EqualsIgnoreCase(stored_code, captcha_code)){
+            res.status = 200;
+            res.set_content(R"({"success":false,"errmsg":"图形验证码错误或已过期"})",
+                "application/json");
+            return;
+        }
+
         // 与 brpc 服务器建立连接
         std::string ip;
         auto channel = svc_discovery_->GetSvcChannel(service_name::user_service, ip);
@@ -763,9 +911,7 @@ private:
         }
         ::linkchat::UserService_Stub stub(channel.get());
 
-        std::string email = req.get_param_value("email"); // 获取路径参数
-
-        // 调用用户服务获取用户信息
+        // 调用用户服务发送邮箱验证码
         ::brpc::Controller cntl;
         ::linkchat::EmailVerifyCodeReq request;
         request.set_email(email);
@@ -1242,6 +1388,8 @@ private:
         ::linkchat::NewMessageRsp rsp;
         rsp.set_success(response.success());
         rsp.set_errmsg(response.errmsg());
+        // 回传消息 id，客户端据此把本地乐观消息的临时 id 换成服务端 id
+        rsp.set_message_id(response.message().message_id());
         std::string content;
         ::google::protobuf::util::MessageToJsonString(rsp, &content);
         if(content == ""){
@@ -1434,6 +1582,63 @@ private:
 
         res.status = 200;
         res.set_content(content, "application/json");
+    }
+
+    // GET /friend/apply/status?peer_id=xxx：查询当前用户是否已向对方发过待处理的好友申请
+    void CheckFriendApply(const ::httplib::Request& req, ::httplib::Response& res){
+        std::string token = req.get_header_value("Authorization");
+        if(token.empty()){
+            res.status = 401;
+            return;
+        }
+        std::string user_id;
+        if(!JwtParse(token, "user_id", user_id)){
+            res.status = 401;
+            return;
+        }
+        std::string peer_id = req.get_param_value("peer_id");
+        if(peer_id.empty()){
+            res.status = 400;
+            return;
+        }
+
+        std::string ip;
+        auto channel = svc_discovery_->GetSvcChannel(service_name::friend_service, ip);
+        if(ip == ""){
+            LOG_ERROR("No nodes available for {}", service_name::friend_service);
+            res.status = 502;
+            return;
+        }
+        if(channel->Init(ip.c_str(), options_.get()) != 0){
+            LOG_ERROR("Failed to init brpc channel to {}, ip {}", service_name::friend_service, ip);
+            res.status = 502;
+            return;
+        }
+
+        ::linkchat::FriendService_Stub stub(channel.get());
+        ::linkchat::CheckFriendApplyReq request;
+        ::linkchat::CheckFriendApplyRsp response;
+        request.set_user_id(user_id);
+        request.set_peer_id(peer_id);
+
+        ::brpc::Controller cntl;
+        stub.CheckFriendApply(&cntl, &request, &response, nullptr);
+        if(cntl.Failed()){
+            LOG_ERROR("Failed to check friend apply, error: {}", cntl.ErrorText());
+            res.status = 502;
+            return;
+        }
+
+        Json::Value data;
+        data["success"] = response.success();
+        data["pending"] = response.pending();
+        if(!response.errmsg().empty()){
+            data["errmsg"] = response.errmsg();
+        }
+        Json::StreamWriterBuilder builder;
+        builder["indentation"] = "";
+        res.status = 200;
+        res.set_content(Json::writeString(builder, data), "application/json");
     }
 
     // 这里对申请人通知，并创建了单聊会话，一并通知

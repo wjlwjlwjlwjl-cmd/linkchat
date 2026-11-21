@@ -58,6 +58,9 @@ inline constexpr const char* kSearchParamEmpty = "chat_session_id 和 search_key
 // ---------- 消息转发服务 ----------
 namespace transmite {
 inline constexpr const char* kPublishToMqFailed = "消息发送到消息队列失败";
+inline constexpr const char* kChatSessionNotFound = "会话不存在或成员信息异常";
+inline constexpr const char* kNotFriend = "你还不是他（她）朋友。请先发送朋友验证请求，对方验证通过后，才能聊天。";
+inline constexpr const char* kNotGroupMember = "你不是该群聊成员，无法发送消息";
 } // namespace transmite
 
 } // namespace errmsg

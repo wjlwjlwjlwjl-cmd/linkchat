@@ -13,6 +13,7 @@ import {
 import { getSingleFile } from "@/api/file";
 import { useMessageStore } from "@/stores/message";
 import { useAvatarUrl } from "@/hooks/useAvatarUrl";
+import { useFileUrlStore } from "@/stores/fileUrl";
 import { imageMimeType, isImageFileName } from "@/lib/file";
 import { cn } from "@/components/ui/cn";
 
@@ -33,12 +34,17 @@ const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
 const SCALE_STEP = 0.25;
 
-// 单张图片：优先本地 base64，历史消息用 file_id 换预签名地址
+// 单张图片：优先本地 base64，历史消息优先用批量预签名缓存，缓存缺失才回退单个接口
 function ViewerImage({ item }: { item: ImageItem }) {
-  const remoteUrl = useAvatarUrl(item.fileContent ? undefined : item.fileId);
+  const cachedUrl = useFileUrlStore((s) =>
+    item.fileId && !item.fileContent ? (s.urls[item.fileId]?.url ?? "") : "",
+  );
+  const fallbackUrl = useAvatarUrl(
+    item.fileContent || cachedUrl ? undefined : item.fileId,
+  );
   const src = item.fileContent
     ? `data:${imageMimeType(item.fileName)};base64,${item.fileContent}`
-    : remoteUrl;
+    : cachedUrl || fallbackUrl;
 
   if (!src) {
     return <div className="h-40 w-40 rounded-base bg-input" />;

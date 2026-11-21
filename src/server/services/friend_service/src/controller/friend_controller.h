@@ -18,6 +18,10 @@ public:
                         const ::linkchat::FriendAddReq* request,
                         ::linkchat::FriendAddRsp* response,
                         ::google::protobuf::Closure* done) override;
+    virtual void CheckFriendApply(::google::protobuf::RpcController* controller,
+                        const ::linkchat::CheckFriendApplyReq* request,
+                        ::linkchat::CheckFriendApplyRsp* response,
+                        ::google::protobuf::Closure* done) override;
     virtual void FriendAddProcess(::google::protobuf::RpcController* controller,
                         const ::linkchat::FriendAddProcessReq* request,
                         ::linkchat::FriendAddProcessRsp* response,

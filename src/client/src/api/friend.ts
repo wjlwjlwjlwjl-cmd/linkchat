@@ -1,12 +1,14 @@
 import { request, USE_MOCK } from "./client";
 import {
   mockAddFriend,
+  mockCreateChatSession,
   mockGetChatSessionList,
   mockGetChatSessionMembers,
   mockGetFriendList,
   mockGetPendingFriendEvents,
   mockGetSingleChatSession,
   mockProcessFriendEvent,
+  mockRemoveFriend,
   mockSearchFriends,
 } from "./mock";
 import type { ApiRsp, ChatSessionInfo, FriendEvent, UserInfo } from "@/types";
@@ -23,6 +25,15 @@ export function getChatSessionList(): Promise<
 export function getFriendList(): Promise<ApiRsp & { friendList?: UserInfo[] }> {
   if (USE_MOCK) return mockGetFriendList();
   return request("/friend/list");
+}
+
+// 查询是否已向对方发过待处理的好友申请（GET /friend/apply/status?peer_id=）
+export function getFriendApplyStatus(
+  peerId: string,
+): Promise<ApiRsp & { pending?: boolean }> {
+  if (USE_MOCK) return Promise.resolve({ success: true, pending: false });
+  const query = new URLSearchParams({ peer_id: peerId });
+  return request(`/friend/apply/status?${query.toString()}`);
 }
 
 // 用户搜索（GET /friend/search?search_key=&count=，昵称模糊匹配）
@@ -56,6 +67,21 @@ export function getSingleChatSession(
   return request(`/friend/chat_session/single?${query.toString()}`);
 }
 
+// 创建群聊（POST /friend/chat_session/create，body: chat_session_name + member_id_list）
+export function createChatSession(
+  chatSessionName: string,
+  memberIdList: string[],
+): Promise<ApiRsp & { chatSessionId?: string }> {
+  if (USE_MOCK) return mockCreateChatSession(chatSessionName, memberIdList);
+  return request("/friend/chat_session/create", {
+    method: "POST",
+    body: JSON.stringify({
+      chat_session_name: chatSessionName,
+      member_id_list: memberIdList,
+    }),
+  });
+}
+
 // 发起好友申请（POST /friend/add，body: respondent_id）
 export function addFriend(
   respondentId: string,
@@ -64,6 +90,15 @@ export function addFriend(
   return request("/friend/add", {
     method: "POST",
     body: JSON.stringify({ respondent_id: respondentId }),
+  });
+}
+
+// 删除好友（POST /friend/remove，body: peer_id；后端同时隐藏自己侧的会话）
+export function removeFriend(peerId: string): Promise<ApiRsp> {
+  if (USE_MOCK) return mockRemoveFriend(peerId);
+  return request("/friend/remove", {
+    method: "POST",
+    body: JSON.stringify({ peer_id: peerId }),
   });
 }
 

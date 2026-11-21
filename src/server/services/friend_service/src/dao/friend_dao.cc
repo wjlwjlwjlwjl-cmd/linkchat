@@ -110,13 +110,14 @@ CommonDTO FriendDao::FriendRemove(const std::string& user_id, const std::string&
     try{
         auto transaction = MysqlClient::Transaction(db_);
         using query = ::odb::query<::linkchat::RelationEntity>;
-        auto result = db_->query<::linkchat::RelationEntity>(query::user_id == user_id && query::peer_id == peer_id);
-        if(result.empty()){
-            return {false, errmsg::friend_service::kRelationNotFound};
-        }
+        // 非好友也允许调用：仅把自己这侧的单聊会话隐藏（用于删除聊天）
 
         long long unsigned count = db_->erase_query<::linkchat::RelationEntity>
             (query::user_id == user_id && query::peer_id == peer_id);
+        // 删除好友是双向的：同时移除对方指向自己的关系，
+        // 这样被删者搜索原好友时会回到「添加」状态，而不是继续显示「发消息」
+        db_->erase_query<::linkchat::RelationEntity>
+            (query::user_id == peer_id && query::peer_id == user_id);
 
         // 删除时，将 user_id 与 peer_id 的单聊会话中，user_id 自己的成员记录的 is_del_ 置为 1
         using single_query = ::odb::query<::linkchat::SingleChatSession>;
@@ -165,6 +166,14 @@ FriendAddDTO FriendDao::FriendAdd(const std::string& user_id, const std::string&
             return {false, errmsg::friend_service::kAlreadyFriend, ""};
         }
 
+        // 已有待处理的申请，幂等返回：不重复落库、不重复通知（notify_event_id 留空）
+        using apply_query = ::odb::query<::linkchat::FriendApply>;
+        auto pending = db_->query_one<::linkchat::FriendApply>(
+            apply_query::user_id == user_id && apply_query::respondent_id == respondent_id);
+        if(pending){
+            return {true, "", ""};
+        }
+
         ::linkchat::FriendApply apply(event_id, user_id, respondent_id);
         db_->persist(apply);
         MysqlClient::Commit(transaction);
@@ -172,6 +181,22 @@ FriendAddDTO FriendDao::FriendAdd(const std::string& user_id, const std::string&
     }
     catch(const std::exception& e){
         return {false, e.what(), ""};
+    }
+}
+
+bool FriendDao::HasPendingApply(const std::string& user_id, const std::string& peer_id){
+    try{
+        // 该项目的 ODB 读操作要求显式事务
+        auto transaction = MysqlClient::Transaction(db_);
+        using query = ::odb::query<::linkchat::FriendApply>;
+        bool pending = static_cast<bool>(db_->query_one<::linkchat::FriendApply>(
+            query::user_id == user_id && query::respondent_id == peer_id));
+        MysqlClient::Commit(transaction);
+        return pending;
+    }
+    catch(const std::exception& e){
+        LOG_ERROR("HasPendingApply failed: {}", e.what());
+        return false;
     }
 }
 
@@ -488,15 +513,14 @@ ChatSessionCreateDTO FriendDao::GetOrCreateSingleChatSession(const std::string& 
         }
 
         if(!chat_session_id.empty()){
-            // 会话已存在，将双方成员记录恢复为未删除
-            for(const auto& uid: {user_id, friend_id}){
-                auto member = db_->query_one<::linkchat::ChatSessionMember>(
-                    member_query::chat_session_id == chat_session_id &&
-                    member_query::user_id == uid);
-                if(member && member->is_del()){
-                    member->set_is_del(false);
-                    db_->update(*member);
-                }
+            // 会话已存在：只恢复发起方自己的成员记录。
+            // 不能同时恢复对方，否则被删方一旦打开会话，会把删除方已隐藏的聊天重新拉起
+            auto member = db_->query_one<::linkchat::ChatSessionMember>(
+                member_query::chat_session_id == chat_session_id &&
+                member_query::user_id == user_id);
+            if(member && member->is_del()){
+                member->set_is_del(false);
+                db_->update(*member);
             }
         }
         else{

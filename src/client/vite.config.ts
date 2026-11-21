@@ -15,7 +15,7 @@ export default defineConfig({
     host: true,
     // 开发期同源代理：把后端路由前缀转发到 9000，避免浏览器 CORS 拦截
     proxy: {
-      "^/(login|register|user|friend|message|file|transmite)/": {
+      "^/(login|register|captcha|user|friend|message|file|transmite)/": {
         target: "http://127.0.0.1:9000",
         changeOrigin: true,
       },
